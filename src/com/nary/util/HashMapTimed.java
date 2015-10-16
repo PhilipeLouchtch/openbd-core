@@ -43,7 +43,8 @@ import com.naryx.tagfusion.cfm.engine.cfEngine;
  */
 
 // can't extend FastMap, which doesn't allow the clear() method to be overridden
-public class HashMapTimed<K, V> extends FastMap<String, HashMapTimed<K, V>.objectWrapper> implements SystemClockEvent {
+//public class HashMapTimed<K extends String, V> extends FastMap<K, HashMapTimed.IdleableObject<V>> implements SystemClockEvent {
+public class HashMapTimed<K extends String, V> extends FastMap<K, V> implements SystemClockEvent {
 
 	private static final long serialVersionUID = 1L;
 	private HashMapTimedCallback callback = null;
@@ -71,46 +72,54 @@ public class HashMapTimed<K, V> extends FastMap<String, HashMapTimed<K, V>.objec
 	}
 
 	public synchronized void clockEvent(int type) {
-		Iterator<String> iter = super.keySet().iterator();
-		while (iter.hasNext()) {
-			String key = iter.next();
-			objectWrapper oW = super.get(key);
-			if (oW.isIdle()) {
-				iter.remove();
-				
-				if ( callback != null )
-					callback.onRemoveFromMap(key, oW.data);
-				
-			} else {
-				oW.setIdle(true);
-			}
-		}
+		Iterator<K> iter = super.keySet().iterator();
+//		while (iter.hasNext()) {
+//			String key = iter.next();
+//			IdleableObject<V> idleableObject = super.get(key);
+//			if (idleableObject.isIdle()) {
+//				iter.remove();
+//
+//				if ( callback != null )
+//					callback.onRemoveFromMap(key, idleableObject.data);
+//
+//			} else {
+//				idleableObject.setIdle(true);
+//			}
+//		}
 	}
 
-	public synchronized Object put(String Key, Object Obj) {
-		return super.put(Key, new objectWrapper(Obj));
+//	@Override
+//	public IdleableObject<V> put(K key, IdleableObject<V> value)
+//	{
+//		return super.put(key, value);
+//	}
+
+	public synchronized V put(K key, V value) {
+		return super.put(key, value);
+		//return super.put(key, new IdleableObject<V>(value)).data;
 	}
 
-	public synchronized Object get(String Key) {
-		if (containsKey(Key)) {
-			objectWrapper oW = super.get(Key);
-			oW.setIdle(false);
-			return oW.data;
-		} else {
-			return null;
-		}
+	public synchronized V get(K key) {
+		return super.get(key);
+
+//		if (containsKey(Key)) {
+//			IdleableObject<V> idleableObject = super.get(key);
+//			idleableObject.setIdle(false);
+//			return idleableObject.data;
+//		} else {
+//			return null;
+//		}
 	}
 
 	// ------------------------------------------------
 	// ------------------------------------------------
 
-	class objectWrapper extends Object {
+	static class IdleableObject<T> {
 
-		public Object data;
-
+		public T data;
 		private boolean idle;
 
-		public objectWrapper(Object _data) {
+		public IdleableObject(T _data) {
 			data = _data;
 			idle = false;
 		}

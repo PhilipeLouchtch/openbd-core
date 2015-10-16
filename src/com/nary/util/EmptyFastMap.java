@@ -41,7 +41,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class EmptyFastMap<V, K> implements CaseSensitiveMap<K, V>, Serializable {
+public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>, Serializable {
 	private static final long serialVersionUID = 1L;
 	final static Set emptySet	= new HashSet();
 	
@@ -65,7 +65,7 @@ public class EmptyFastMap<V, K> implements CaseSensitiveMap<K, V>, Serializable 
 	}
 
 	@Override
-	public Set<java.util.Map.Entry<String, V>> entrySet() {
+	public Set<java.util.Map.Entry<K, V>> entrySet() {
 		return null;
 	}
 
@@ -80,17 +80,17 @@ public class EmptyFastMap<V, K> implements CaseSensitiveMap<K, V>, Serializable 
 	}
 
 	@Override
-	public Set<String> keySet() {
+	public Set<K> keySet() {
 		return emptySet;
 	}
 
 	@Override
-	public V put(String arg0, V arg1) {
+	public V put(K arg0, V arg1) {
 		return null;
 	}
 
 	@Override
-	public void putAll(Map<? extends String, ? extends V> arg0) {
+	public void putAll(Map<? extends K, ? extends V> arg0) {
 	}
 
 	@Override

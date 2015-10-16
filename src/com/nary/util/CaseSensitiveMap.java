@@ -29,8 +29,8 @@
 
 package com.nary.util;
 
-public interface CaseSensitiveMap<K,V> extends java.util.Map<String,V> {
+public interface CaseSensitiveMap<K extends String, V> extends java.util.Map<K, V> {
 
-	public boolean isCaseSensitive();
+	boolean isCaseSensitive();
 	
 }

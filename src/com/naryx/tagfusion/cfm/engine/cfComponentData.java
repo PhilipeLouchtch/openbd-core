@@ -43,6 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.nary.util.StringComperatorSingletons;
 import javolution.util.FastList;
 
 import com.naryx.tagfusion.cfm.application.cfAPPLICATION;
@@ -341,10 +342,10 @@ public class cfComponentData extends cfComponentDataBase implements Serializable
 			return;
 		}
 		_polymorphNames = new FastList<String>();
-		_polymorphNames.setValueComparator(com.nary.util.FastMap.stringComparatorIgnoreCase);
+		_polymorphNames.setValueComparator(StringComperatorSingletons.ignoreCaseStringComperator);
 
 		_polymorphPaths = new FastList<String>();
-		_polymorphPaths.setValueComparator(com.nary.util.FastMap.stringComparatorIgnoreCase);
+		_polymorphPaths.setValueComparator(StringComperatorSingletons.ignoreCaseStringComperator);
 
 		// add this component into list
 		_polymorphNames.add(_componentName);

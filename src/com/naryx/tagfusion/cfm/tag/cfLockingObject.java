@@ -38,8 +38,8 @@ import com.naryx.tagfusion.cfm.engine.cfData;
 public class cfLockingObject extends cfData implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	private FastMap readOnly = new FastMap(); // keyed by Thread, holds readonly counters
-	private FastMap exclusive = new FastMap(); // keyed by Thread, hold exclusive counters
+	private FastMap<String, Integer> readOnly = new FastMap<>(); // holds readonly counters
+	private FastMap<String, Integer> exclusive = new FastMap<>(); // holds exclusive counters
 
 	private int refCount;
 
@@ -85,9 +85,8 @@ public class cfLockingObject extends cfData implements Serializable {
 	 * lock.
 	 */
 	private synchronized boolean canGetReadOnlyLock(Thread currentThread) {
-		Iterator iter = exclusive.keySet().iterator();
-		while (iter.hasNext()) {
-			if ((Thread) iter.next() != currentThread)
+		for (String threadName : exclusive.keySet()) {
+			if (!threadName.equals(currentThread.getName()))
 				return false;
 		}
 		return true;
@@ -101,11 +100,11 @@ public class cfLockingObject extends cfData implements Serializable {
 			return false;
 
 		// increment the read-only counter for this thread
-		Integer readOnlyCount = (Integer) readOnly.get(currentThread);
+		Integer readOnlyCount = readOnly.get(currentThread.getName());
 		if (readOnlyCount == null) {
-			readOnlyCount = new Integer(0);
+			readOnlyCount = 0;
 		}
-		readOnly.put(currentThread, new Integer(readOnlyCount.intValue() + 1));
+		readOnly.put(currentThread.getName(), readOnlyCount + 1);
 		return true;
 	}
 
@@ -136,13 +135,15 @@ public class cfLockingObject extends cfData implements Serializable {
 
 	private synchronized void unlockReadOnly() {
 		Thread currentThread = Thread.currentThread();
-		if (readOnly.containsKey(currentThread)) {
+		if (readOnly.containsKey(currentThread.getName())) {
 			// decrement the read-only counter for this thread
-			int readOnlyCount = ((Integer) readOnly.get(currentThread)).intValue() - 1;
-			if (readOnlyCount == 0)
-				readOnly.remove(currentThread);
-			else
-				readOnly.put(currentThread, new Integer(readOnlyCount));
+			int readOnlyCount = readOnly.get(currentThread.getName()) - 1;
+			if (readOnlyCount == 0) {
+				readOnly.remove(currentThread.getName());
+			}
+			else {
+				readOnly.put(currentThread.getName(), readOnlyCount);
+			}
 		}
 	}
 
@@ -158,18 +159,19 @@ public class cfLockingObject extends cfData implements Serializable {
 			return false;
 
 		// make sure no other thread has a read-only lock
-		Iterator iter = readOnly.keySet().iterator();
-		while (iter.hasNext()) {
-			if ((Thread) iter.next() != currentThread)
+		for (String threadName : readOnly.keySet())
+		{
+			if (!threadName.equals(currentThread.getName())) {
 				return false;
+			}
 		}
 
 		// increment the exclusive counter for this thread
-		Integer exclusiveCount = (Integer) exclusive.get(currentThread);
+		Integer exclusiveCount = exclusive.get(currentThread.getName());
 		if (exclusiveCount == null) {
-			exclusiveCount = new Integer(0);
+			exclusiveCount = 0;
 		}
-		exclusive.put(currentThread, new Integer(exclusiveCount.intValue() + 1));
+		exclusive.put(currentThread.getName(), exclusiveCount + 1);
 		return true;
 	}
 
@@ -200,13 +202,15 @@ public class cfLockingObject extends cfData implements Serializable {
 
 	private synchronized void unlockExclusive() {
 		Thread currentThread = Thread.currentThread();
-		if (exclusive.containsKey(currentThread)) {
+		if (exclusive.containsKey(currentThread.getName())) {
 			// decrement the exclusive counter for this thread
-			int exclusiveCount = ((Integer) exclusive.get(currentThread)).intValue() - 1;
-			if (exclusiveCount == 0)
-				exclusive.remove(currentThread);
-			else
-				exclusive.put(currentThread, new Integer(exclusiveCount));
+			int exclusiveCount = exclusive.get(currentThread.getName()) - 1;
+			if (exclusiveCount == 0) {
+				exclusive.remove(currentThread.getName());
+			}
+			else {
+				exclusive.put(currentThread.getName(), exclusiveCount);
+			}
 		}
 	}
 }

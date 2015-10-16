@@ -30,8 +30,7 @@
 package com.nary.util;
 
 import java.io.Serializable;
-
-import javolution.util.FastComparator;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A subclass of javolution.util.FastMap that supports case-insensitive keys.
@@ -40,26 +39,31 @@ import javolution.util.FastComparator;
  * FastMap performs better than java.util.HashMap, and also gives us the ability
  * to provide a key comparator, which is how case-insensitivity is implemented.
  */
-public class FastMap<K, V> extends javolution.util.FastMap<String, V> implements CaseSensitiveMap<String, V>, Serializable, Cloneable {
+public class FastMap<K extends String, V> extends ConcurrentHashMap<K, V> implements CaseSensitiveMap<K, V>, Serializable, Cloneable {
 	static final long serialVersionUID = 1;
 
 	public static final boolean CASE_SENSITIVE = true;
-
 	public static final boolean CASE_INSENSITIVE = false;
 
-	// use the FastMap default key comparator for case-sensitive comparisons
-	public static FastComparator<String> stringComparatorIgnoreCase = new StringComparatorIgnoreCase();
+	private boolean isCaseSensitive;
 
-	public FastMap() { // FastMaps are case-sensitive by default
+	public FastMap(boolean isCaseSensitive) {
+		this.isCaseSensitive = isCaseSensitive;
 	}
 
-	public FastMap(FastMap<String, V> map) {
-		setKeyComparator(map.getKeyComparator()); // must be done before putAll()
-		setShared(map.isShared());
+	public FastMap() {
+		// FastMaps are case-sensitive by default
+		this(CASE_SENSITIVE);
+	}
+
+	public FastMap(FastMap<K, V> map) {
+		isCaseSensitive = map.isCaseSensitive();
 		putAll(map);
 	}
 
-	public FastMap(java.util.Map<String, V> map) {
+	public FastMap(java.util.Map<K, V> map) {
+		// java.util.Map is case sensitive
+		this(CASE_SENSITIVE);
 		putAll(map);
 	}
 
@@ -67,41 +71,45 @@ public class FastMap<K, V> extends javolution.util.FastMap<String, V> implements
 		super(initialCapacity);
 	}
 
-	// this constructor is not part of the standard java.util.Map interface
-	public FastMap(boolean isCaseSensitive) {
-		if (!isCaseSensitive) {
-			setKeyComparator(stringComparatorIgnoreCase);
-		}
-	}
-
-	public Object clone() {
-		return new FastMap<String, V>(this);
+	public FastMap<K, V> clone() {
+		return new FastMap<K, V>(this);
 	}
 
 	// this method is not part of the standard java.util.Map interface
 	public boolean isCaseSensitive() {
-		return (getKeyComparator() != stringComparatorIgnoreCase);
+		return isCaseSensitive;
 	}
 
-	// case-insensitive string comparator for use by FastMap
-	private static class StringComparatorIgnoreCase extends FastComparator<String> {
-		private static final long serialVersionUID = 1L;
+	protected K convertCasingIfNeeded(K key) {
+		return !isCaseSensitive() ? (K) key.toLowerCase() : key;
+	}
 
-		// the formal definition of this method says you're supposed to allow nulls;
-		// but we're dealing with keys here, which aren't allowed to be null, so
-		// don't
-		// bother checking for nulls
-		public boolean areEqual(String key1, String key2) {
-			return key1.equalsIgnoreCase(key2);
+	@Override
+	public V put(K key, V value) {
+		if (isCaseSensitive()) {
+			return super.put(key, value);
 		}
+		else {
+			// When insensitive, squash casing to lower-case
+			return super.put((K) key.toLowerCase(), value);
+		}
+	}
 
-		public int compare(String key1, String key2) {
-			return key1.compareToIgnoreCase(key2);
-		}
+	@Override
+	public V get(Object k)
+	{
+		return super.get(convertCasingIfNeeded((K) k));
+	}
 
-		public int hashCodeOf(String key) {
-			// toLowerCase() performs much better here than toUpperCase()
-			return key.toLowerCase().hashCode();
-		}
+	@Override
+	public boolean containsKey(Object k)
+	{
+		return super.containsKey(convertCasingIfNeeded((K) k));
+	}
+
+	@Override
+	public V remove(Object k)
+	{
+		return super.remove(convertCasingIfNeeded((K) k));
 	}
 }

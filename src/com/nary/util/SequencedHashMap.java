@@ -19,17 +19,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.AbstractCollection;
-import java.util.AbstractSet;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ConcurrentModificationException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 /**
  *  A map of objects whose mapping entries are sequenced based on the order in
@@ -50,13 +40,13 @@ import java.util.Set;
  * @author <a href="mailto:dlr@collab.net">Daniel Rall</a>
  * @author <a href="mailto:hps@intermeta.de">Henning P. Schmiedehausen</a>
  */
-public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externalizable
+public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K, V>, Cloneable, Externalizable
 {
   /**
    *  {@link java.util.Map.Entry} that doubles as a node in the linked list
-   *  of sequenced mappings.  
+   *  of sequenced mappings.
    **/
-  private static class Entry implements Map.Entry {
+  private static class Entry<K, V> implements Map.Entry<K, V> {
     // Note: This class cannot easily be made clonable.  While the actual
     // implementation of a clone would be simple, defining the semantics is
     // difficult.  If a shallow clone is implemented, then entry.next.prev !=
@@ -66,41 +56,36 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
     // the case with SequencedHashMap)?  It's impossible to know in the clone
     // when to stop cloning, and thus you end up in a recursive loop,
     // continuously cloning the "next" in the list.
-	
-    private final Object key;
-    private Object value;
-    
-    // package private to allow the SequencedHashMap to access and manipulate
-    // them.
-    Entry next = null;
-    Entry prev = null;
 
-    public Entry(Object key, Object value) {
+    private final K key;
+    private V value;
+
+    public Entry(K key, V value) {
       this.key = key;
       this.value = value;
     }
 
     // per Map.Entry.getKey()
-    public Object getKey() { 
-      return this.key; 
+    public K getKey() {
+      return this.key;
     }
 
     // per Map.Entry.getValue()
-    public Object getValue() { 
-      return this.value; 
+    public V getValue() {
+      return this.value;
     }
 
     // per Map.Entry.setValue()
-    public Object setValue(Object value) { 
-      Object oldValue = this.value;
-      this.value = value; 
+    public V setValue(V value) {
+      V oldValue = this.value;
+      this.value = value;
       return oldValue;
     }
 
-    public int hashCode() { 
+    public int hashCode() {
       // implemented per api docs for Map.Entry.hashCode()
       return ((getKey() == null ? 0 : getKey().hashCode()) ^
-              (getValue()==null ? 0 : getValue().hashCode())); 
+              (getValue()==null ? 0 : getValue().hashCode()));
     }
 
     public boolean equals(Object obj) {
@@ -110,12 +95,12 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
 
       Map.Entry other = (Map.Entry)obj;
 
-      // implemented per api docs for Map.Entry.equals(Object) 
+      // implemented per api docs for Map.Entry.equals(Object)
       return((getKey() == null ?
-              other.getKey() == null : 
+              other.getKey() == null :
               getKey().equals(other.getKey()))  &&
              (getValue() == null ?
-              other.getValue() == null : 
+              other.getValue() == null :
               getValue().equals(other.getValue())));
     }
     public String toString() {
@@ -125,25 +110,26 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
 
   /**
    *  Construct an empty sentinel used to hold the head (sentinel.next) and the
-   *  tail (sentinel.prev) of the list.  The sentinal has a <code>null</code>
+   *  tail (sentinel.prev) of the list.  The sentinel has a <code>null</code>
    *  key and value.
    **/
-  private static final Entry createSentinel() {
-    Entry s = new Entry(null, null);
-    s.prev = s;
-    s.next = s;
-    return s;
-  }
+//  private static<KType, VType> Entry<KType, VType> createSentinel() {
+//    Entry s = new Entry<KType, VType>(null, null);
+//    s.prev = s;
+//    return s;
+//  }
+//
+//  /**
+//   *  Sentinel used to hold the head and tail of the list of entries.
+//   **/
+//  private Entry<K, V> sentinel;
 
-  /**
-   *  Sentinel used to hold the head and tail of the list of entries.
-   **/
-  private Entry sentinel;
+  List<Entry<K, V>> orderedEntries = new LinkedList<>();
 
   /**
    *  Map of keys to entries
    **/
-  private FastMap entries;
+  private FastMap<K, Entry<K, V>> entries;
 
   /**
    *  Holds the number of modifications that have occurred to the map,
@@ -158,8 +144,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  factor and case-sensitive keys.
    **/
   public SequencedHashMap() {
-    sentinel = createSentinel();
-    entries = new FastMap();
+    entries = new FastMap<K, Entry<K, V>>();
   }
 
 	/**
@@ -167,8 +152,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
 	 *  factor and specified case-sensitivity.
 	 **/
 	public SequencedHashMap( boolean caseSensitive ) {
-		sentinel = createSentinel();
-		entries = new FastMap( caseSensitive );
+		entries = new FastMap<K, Entry<K, V>>( caseSensitive );
 	}
 
   /**
@@ -180,8 +164,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  @see FastMap#FastMap(int)
    **/
   public SequencedHashMap(int initialSize) {
-    sentinel = createSentinel();
-    entries = new FastMap(initialSize);
+    entries = new FastMap<K, Entry<K, V>>(initialSize);
   }
 
   /**
@@ -207,20 +190,16 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  Removes an internal entry from the linked list.  This does not remove
    *  it from the underlying map.
    **/
-  private static void removeEntry(Entry entry) {
-    entry.next.prev = entry.prev;
-    entry.prev.next = entry.next;    
+  private void removeEntry(Entry entry) {
+    orderedEntries.remove(entry);
   }
 
   /**
    *  Inserts a new internal entry to the tail of the linked list.  This does
    *  not add the entry to the underlying map.
    **/
-  private void insertEntry(Entry entry) {
-    entry.next = sentinel;
-    entry.prev = sentinel.prev;
-    sentinel.prev.next = entry;
-    sentinel.prev = entry;
+  private void insertEntry(Entry<K, V> entry) {
+    orderedEntries.add(entry);
   }
 
   // per Map.size()
@@ -237,9 +216,9 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  Implements {@link Map#isEmpty()}.
    */
   public boolean isEmpty() {
-    // for quick check whether the map is entry, we can check the linked list
+    // for quick check whether the map is empty, we can check the linked list
     // and see if there's anything in it.
-    return sentinel.next == sentinel;
+    return orderedEntries.isEmpty();
   }
 
   /**
@@ -263,11 +242,11 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
     // provides a tighter, more efficient loop at the expense of slight
     // code duplication.
     if(value == null) {
-      for(Entry pos = sentinel.next; pos != sentinel; pos = pos.next) {
+      for(Entry<K, V> pos : orderedEntries) {
         if(pos.getValue() == null) return true;
       } 
     } else {
-      for(Entry pos = sentinel.next; pos != sentinel; pos = pos.next) {
+      for(Entry<K, V> pos : orderedEntries) {
         if(value.equals(pos.getValue())) return true;
       }
     }
@@ -277,9 +256,9 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   /**
    *  Implements {@link Map#get(Object)}.
    */
-  public Object get(Object o) {
+  public V get(Object o) {
     // find entry for the specified key object
-    Entry entry = (Entry)entries.get(o);
+    Entry<K, V> entry = entries.get((K) o);
     if(entry == null) return null;
       
     return entry.getValue();
@@ -295,130 +274,87 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  @return The first entry in the sequence, or <code>null</code> if the
    *  map is empty.
    **/
-  public Map.Entry getFirst() {
+  public Map.Entry<K, V> getFirst() {
     // sentinel.next points to the "first" element of the sequence -- the head
     // of the list, which is exactly the entry we need to return.  We must test
     // for an empty list though because we don't want to return the sentinel!
-    return (isEmpty()) ? null : sentinel.next;
+    return isEmpty() ? null : orderedEntries.get(0);
   }
 
   /**
    *  Return the key for the "oldest" mapping.  That is, return the key for the
    *  mapping that was first put into the map when compared to all the other
-   *  objects in the map.  This behavior is equivalent to using
-   *  <code>getFirst().getKey()</code>, but this method provides a slightly
-   *  optimized implementation.
+   *  objects in the map.
    *
    *  @return The first key in the sequence, or <code>null</code> if the
    *  map is empty.
    **/
-  public Object getFirstKey() {
-    // sentinel.next points to the "first" element of the sequence -- the head
-    // of the list -- and the requisite key is returned from it.  An empty list
-    // does not need to be tested.  In cases where the list is empty,
-    // sentinel.next will point to the sentinel itself which has a null key,
-    // which is exactly what we would want to return if the list is empty (a
-    // nice convient way to avoid test for an empty list)
-    return sentinel.next.getKey();
+  public K getFirstKey() {
+    return isEmpty() ? null : getFirst().getKey();
   }
 
   /**
    *  Return the value for the "oldest" mapping.  That is, return the value for
    *  the mapping that was first put into the map when compared to all the
-   *  other objects in the map.  This behavior is equivalent to using
-   *  <code>getFirst().getValue()</code>, but this method provides a slightly
-   *  optimized implementation.
+   *  other objects in the map.
    *
    *  @return The first value in the sequence, or <code>null</code> if the
    *  map is empty.
    **/
-  public Object getFirstValue() {
-    // sentinel.next points to the "first" element of the sequence -- the head
-    // of the list -- and the requisite value is returned from it.  An empty
-    // list does not need to be tested.  In cases where the list is empty,
-    // sentinel.next will point to the sentinel itself which has a null value,
-    // which is exactly what we would want to return if the list is empty (a
-    // nice convient way to avoid test for an empty list)
-    return sentinel.next.getValue();
+  public V getFirstValue() {
+    return isEmpty() ? null : getFirst().getValue();
   }
 
   /**
    *  Return the entry for the "newest" mapping.  That is, return the Map.Entry
    *  for the key-value pair that was first put into the map when compared to
-   *  all the other pairings in the map.  The behavior is equivalent to:
-   *
-   *  <pre>
-   *    Object obj = null;
-   *    Iterator iter = entrySet().iterator();
-   *    while(iter.hasNext()) {
-   *      obj = iter.next();
-   *    }
-   *    return (Map.Entry)obj;
-   *  </pre>
-   *
-   *  However, the implementation of this method ensures an O(1) lookup of the
-   *  last key rather than O(n).
+   *  all the other pairings in the map.
    *
    *  @return The last entry in the sequence, or <code>null</code> if the map
    *  is empty.
    **/
-  public Map.Entry getLast() {
+  public Map.Entry<K, V> getLast() {
     // sentinel.prev points to the "last" element of the sequence -- the tail
     // of the list, which is exactly the entry we need to return.  We must test
     // for an empty list though because we don't want to return the sentinel!
-    return (isEmpty()) ? null : sentinel.prev;
+    return isEmpty() ? null : getLast();
   }
 
   /**
    *  Return the key for the "newest" mapping.  That is, return the key for the
    *  mapping that was last put into the map when compared to all the other
-   *  objects in the map.  This behavior is equivalent to using
-   *  <code>getLast().getKey()</code>, but this method provides a slightly
-   *  optimized implementation.
+   *  objects in the map.
    *
    *  @return The last key in the sequence, or <code>null</code> if the map is
    *  empty.
    **/
-  public Object getLastKey() {
-    // sentinel.prev points to the "last" element of the sequence -- the tail
-    // of the list -- and the requisite key is returned from it.  An empty list
-    // does not need to be tested.  In cases where the list is empty,
-    // sentinel.prev will point to the sentinel itself which has a null key,
-    // which is exactly what we would want to return if the list is empty (a
-    // nice convient way to avoid test for an empty list)
-    return sentinel.prev.getKey();
+  public K getLastKey() {
+    return isEmpty() ? null : getLast().getKey();
   }
 
   /**
    *  Return the value for the "newest" mapping.  That is, return the value for
    *  the mapping that was last put into the map when compared to all the other
-   *  objects in the map.  This behavior is equivalent to using
-   *  <code>getLast().getValue()</code>, but this method provides a slightly
-   *  optimized implementation.
+   *  objects in the map.
    *
    *  @return The last value in the sequence, or <code>null</code> if the map
    *  is empty.
    **/
-  public Object getLastValue() {
-    // sentinel.prev points to the "last" element of the sequence -- the tail
-    // of the list -- and the requisite value is returned from it.  An empty
-    // list does not need to be tested.  In cases where the list is empty,
-    // sentinel.prev will point to the sentinel itself which has a null value,
-    // which is exactly what we would want to return if the list is empty (a
-    // nice convient way to avoid test for an empty list)
-    return sentinel.prev.getValue();
+  public V getLastValue() {
+    return isEmpty() ? null : getLast().getValue();
   }
 
   /**
    *  Implements {@link Map#put(Object, Object)}.
    */
-  public Object put(Object key, Object value) {
+  @Override
+  public V put(K key, V value) {
     modCount++;
 
-    Object oldValue = null;
+    V oldValue = null;
 
     // lookup the entry for the specified key
-    Entry e = (Entry)entries.get(key);
+    Entry<K, V> e = entries.get(key);
 
     // check to see if it already exists
     if(e != null) {
@@ -435,7 +371,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
       // method properly and then use it as a key in this map.  
     } else {
       // add new entry
-      e = new Entry(key, value);
+      e = new Entry<K, V>(key, value);
       entries.put(key, e);
     }
     // assert(entry in map, but not list)
@@ -449,8 +385,9 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   /**
    *  Implements {@link Map#remove(Object)}.
    */
-  public Object remove(Object key) {
-    Entry e = removeImpl(key);
+  @Override
+  public V remove(Object key) {
+    Entry<K, V> e = removeImpl(key);
     return (e == null) ? null : e.getValue();
   }
   
@@ -458,8 +395,8 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  Fully remove an entry from the map, returning the old entry or null if
    *  there was no such entry with the specified key.
    **/
-  private Entry removeImpl(Object key) {
-    Entry e = (Entry)entries.remove(key);
+  private Entry<K, V> removeImpl(Object key) {
+    Entry<K, V> e = entries.remove(key);
     if(e == null) return null;
     modCount++;
     removeEntry(e);
@@ -476,26 +413,23 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *
    *  @exception NullPointerException if <code>t</code> is <code>null</code>
    **/
-  public void putAll(Map t) {
-    Iterator iter = t.entrySet().iterator();
-    while(iter.hasNext()) {
-      Map.Entry entry = (Map.Entry)iter.next();
+  public void putAll(Map<? extends K, ? extends V> t) {
+    for (Map.Entry<? extends K, ? extends V> entry : t.entrySet())
+    {
       put(entry.getKey(), entry.getValue());
     }
   }
 
   /**
    *  Implements {@link Map#clear()}.
+   *  NOTE: Not thread-safe
    */
   public void clear() {
     modCount++;
 
     // remove all from the underlying map
     entries.clear();
-
-    // and the list
-    sentinel.next = sentinel;
-    sentinel.prev = sentinel;
+    orderedEntries.clear();
   }
 
   /**
@@ -525,26 +459,25 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  iterate over the entries in the map formatting them as appropriate.
    **/
   public String toString() {
-  	StringBuilder buf = new StringBuilder();
-    buf.append('[');
-    for(Entry pos = sentinel.next; pos != sentinel; pos = pos.next) {
-      buf.append(pos.getKey());
-      buf.append('=');
-      buf.append(pos.getValue());
-      if(pos.next != sentinel) {
-        buf.append(',');
-      }
+  	StringBuilder stringBuilder = new StringBuilder().append('[');
+    for(Entry<K, V> pos : orderedEntries) {
+      stringBuilder.append(pos.getKey()).append('=').append(pos.getValue());
     }
-    buf.append(']');
+    if (orderedEntries.size() > 0) {
+      // remove last comma if present
+      stringBuilder.setLength(stringBuilder.length() - 1);
+    }
+    stringBuilder.append(']');
 
-    return buf.toString();
+    return stringBuilder.toString();
   }
 
   /**
    *  Implements {@link Map#keySet()}.
    */
-  public Set keySet() {
-    return new AbstractSet() {
+  // TODO: Type Safe iterator
+  public Set<K> keySet() {
+    return new AbstractSet<K>() {
 
       // required impls
       public Iterator iterator() { return new OrderedIterator(KEY); }
@@ -573,6 +506,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   /**
    *  Implements {@link Map#values()}.
    */
+  // TODO: Type Safe iterator
   public Collection values() {
     return new AbstractCollection() {
       // required impl
@@ -582,14 +516,14 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
         // provides a tighter, more efficient loop at the expense of slight
         // code duplication.
         if(value == null) {
-          for(Entry pos = sentinel.next; pos != sentinel; pos = pos.next) {
+          for(Entry<K, V> pos : orderedEntries) {
             if(pos.getValue() == null) {
               SequencedHashMap.this.removeImpl(pos.getKey());
               return true;
             }
           } 
         } else {
-          for(Entry pos = sentinel.next; pos != sentinel; pos = pos.next) {
+          for(Entry<K, V> pos : orderedEntries) {
             if(value.equals(pos.getValue())) {
               SequencedHashMap.this.removeImpl(pos.getKey());
               return true;
@@ -619,6 +553,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   /**
    *  Implements {@link Map#entrySet()}.
    */
+  // TODO: Type safe
   public Set entrySet() {
     return new AbstractSet() {
       // helper
@@ -627,7 +562,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
         if(!(o instanceof Map.Entry)) return null;
         
         Map.Entry e = (Map.Entry)o;
-        Entry entry = (Entry)entries.get(e.getKey());
+        Entry<K, V> entry = entries.get(e.getKey());
         if(entry != null && entry.equals(e)) return entry;
         else return null;
       }
@@ -666,7 +601,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   private static final int REMOVED_MASK = 0x80000000;
 
   private class OrderedIterator implements Iterator {
-    /** 
+    /**
      *  Holds the type that should be returned from the iterator.  The value
      *  should be either {@link #KEY}, {@link #VALUE}, or {@link #ENTRY}.  To
      *  save a tiny bit of memory, this field is also used as a marker for when
@@ -675,15 +610,13 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
      *  bit specified by {@link #REMOVED_MASK} is set), the current position
      *  has been removed.  If positive, remove can still be called.
      **/
-
-
     private int returnType;
 
     /**
      *  Holds the "current" position in the iterator.  When pos.next is the
      *  sentinel, we've reached the end of the list.
      **/
-    private Entry pos = sentinel;
+    private int pos = -1;
 
     /**
      *  Holds the expected modification count.  If the actual modification
@@ -720,7 +653,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
      *  returned from the iterator; <code>false</code> otherwise.
      **/
     public boolean hasNext() {
-      return pos.next != sentinel;
+      return (pos + 1) < orderedEntries.size();
     }
 
     /**
@@ -738,21 +671,26 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
       if(modCount != expectedModCount) {
         throw new ConcurrentModificationException();
       }
-      if(pos.next == sentinel) {
+
+      if(!hasNext()) {
         throw new NoSuchElementException();
       }
+      else {
+        pos++;
+      }
+
 
       // clear the "removed" flag
       returnType = returnType & ~REMOVED_MASK;
 
-      pos = pos.next;
+      Entry<K,V> entry = orderedEntries.get(pos);
       switch(returnType) {
       case KEY:
-        return pos.getKey();
+        return entry.getKey();
       case VALUE:
-        return pos.getValue();
+        return entry.getValue();
       case ENTRY:
-        return pos;
+        return entry;
       default:
         // should never happen
         throw new Error("bad iterator type: " + returnType);
@@ -779,7 +717,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
         throw new ConcurrentModificationException();
       }
 
-      SequencedHashMap.this.removeImpl(pos.getKey());
+      SequencedHashMap.this.removeImpl(orderedEntries.get(pos).getKey());
 
       // update the expected mod count for the remove operation
       expectedModCount++;
@@ -807,17 +745,17 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
     // the stuff that super might be doing anyway, but for motivations on
     // this, see:
     // http://www.javaworld.com/javaworld/jw-01-1999/jw-01-object.html
-    SequencedHashMap map = (SequencedHashMap)super.clone();
-
-    // create new, empty sentinel
-    map.sentinel = createSentinel();
+    SequencedHashMap<K, V> map = (SequencedHashMap<K, V>) super.clone();
 
     // create a new, empty entry map
     // note: this does not preserve the initial capacity and load factor.
-    map.entries = new FastMap();
+    map.entries = new FastMap<>();
       
     // add all the mappings
     map.putAll(this);
+
+    // copy the ordering
+    map.orderedEntries.addAll(this.orderedEntries);
 
     // Note: We cannot just clone the hashmap and sentinel because we must
     // duplicate our internal structures.  Cloning those two will not clone all
@@ -836,27 +774,15 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  @exception ArrayIndexOutOfBoundsException if the specified index is
    *  <code>&lt; 0</code> or <code>&gt;</code> the size of the map.
    **/
-  private Map.Entry getEntry(int index) {
-    Entry pos = sentinel;
-
-    if(index < 0) {
+  private Map.Entry<K, V> getEntry(int index) {
+    if (index < 0) {
       throw new ArrayIndexOutOfBoundsException(index + " < 0");
     }
-
-    // loop to one before the position
-    int i = -1;
-    while(i < (index-1) && pos.next != sentinel) {
-      i++;
-      pos = pos.next;
-    }
-    // pos.next is the requested position
-    
-    // if sentinel is next, past end of list
-    if(pos.next == sentinel) {
-      throw new ArrayIndexOutOfBoundsException(index + " >= " + (i + 1));
+    if (index >= orderedEntries.size()) {
+      throw new ArrayIndexOutOfBoundsException(index + " >= " + orderedEntries.size());
     }
 
-    return pos.next;
+    return orderedEntries.get(index);
   }
 
   /**
@@ -865,7 +791,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  @exception ArrayIndexOutOfBoundsException if the <code>index</code> is
    *  <code>&lt; 0</code> or <code>&gt;</code> the size of the map.
    */
-  public Object get (int index)
+  public K get(int index)
   {
     return getEntry(index).getKey();
   }
@@ -876,7 +802,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    *  @exception ArrayIndexOutOfBoundsException if the <code>index</code> is
    *  <code>&lt; 0</code> or <code>&gt;</code> the size of the map.
    */
-  public Object getValue (int index)
+  public V getValue (int index)
   {
     return getEntry(index).getValue();
   }
@@ -884,21 +810,25 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   /**
    * Returns the index of the specified key.
    */
-  public int indexOf (Object key)
+  public int indexOf(K key)
   {
-    Entry e = (Entry)entries.get(key);
+    Entry<K, V> entryFromMap = entries.get(key);
     int pos = 0;
-    while(e.prev != sentinel) {
+    for (Entry<K, V> entryFromList : orderedEntries) {
+      if (entryFromList == entryFromMap) {
+        break;
+      }
+
       pos++;
-      e = e.prev;
     }
+
     return pos;
   }
 
   /**
    * Returns a key iterator.
    */
-  public Iterator iterator ()
+  public Iterator iterator()
   {
     return keySet().iterator();
   }
@@ -906,7 +836,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   /**
    * Returns the last index of the specified key.
    */
-  public int lastIndexOf (Object key)
+  public int lastIndexOf(K key)
   {
     // keys in a map are guarunteed to be unique
     return indexOf(key);
@@ -928,12 +858,8 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    */
   public List sequence()
   {
-    List l = new ArrayList(size());
-    Iterator iter = keySet().iterator();
-    while(iter.hasNext()) {
-      l.add(iter.next());
-    }
-      
+    List<K> l = new ArrayList<>(keySet());
+
     return Collections.unmodifiableList(l);
   }
 
@@ -966,9 +892,10 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
   {
     int size = in.readInt();    
     for(int i = 0; i < size; i++)  {
-      Object key = in.readObject();
-      Object value = in.readObject();
-      put(key, value);
+      Object key = (K) in.readObject();
+      Object value = (V) in.readObject();
+
+      put((K) key, (V) value);
     }
   }
   
@@ -980,7 +907,7 @@ public class SequencedHashMap implements CaseSensitiveMap, Cloneable, Externaliz
    */
   public void writeExternal( ObjectOutput out ) throws IOException {
     out.writeInt(size());
-    for(Entry pos = sentinel.next; pos != sentinel; pos = pos.next) {
+    for(Entry<K, V> pos : orderedEntries) {
       out.writeObject(pos.getKey());
       out.writeObject(pos.getValue());
     }

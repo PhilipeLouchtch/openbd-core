@@ -45,7 +45,7 @@ public class SessionStorageInternalImpl extends SessionStorageBase implements Se
 	
 	public SessionStorageInternalImpl(String appName){
 		super(appName);
-		cfSessionStore	= new FastMap<String, cfSessionData>().shared();
+		cfSessionStore = new FastMap<String, cfSessionData>();
 	}
 	
 	public SessionStorageFactory.SessionEngine	getType(){
