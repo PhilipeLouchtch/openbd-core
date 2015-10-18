@@ -30,14 +30,6 @@
 
 package com.naryx.tagfusion.cfm.engine;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.nary.util.CaseSensitiveMap;
 import com.nary.util.FastMap;
 import com.nary.util.HashMap;
@@ -45,6 +37,8 @@ import com.nary.util.SequencedHashMap;
 import com.naryx.tagfusion.cfm.parser.script.userDefinedFunction;
 import com.naryx.tagfusion.cfm.tag.cfDUMP;
 import com.naryx.tagfusion.cfm.tag.tagUtils;
+
+import java.util.*;
 
 /**
  * This class implements the CFML data structure
