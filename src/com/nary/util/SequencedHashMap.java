@@ -88,7 +88,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
     @Override
     public Object clone() throws CloneNotSupportedException
     {
-      Entry<K, V> clonedEntry = new Entry<>(key, value);
+      Entry<K, V> clonedEntry = (Entry<K, V>) super.clone();
       return clonedEntry;
     }
 
