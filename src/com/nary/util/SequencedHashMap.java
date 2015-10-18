@@ -10,7 +10,7 @@
 
 /**
  * This is a modified version of org.apache.commons.collections.SequencedHashMap
- * that uses com.nary.util.HashMap for storing entries (instead of java.util.Map)
+ * that uses com.nary.util.FastMap for storing entries (instead of java.util.Map)
  * and that supports case-sensitive or case-insensitive keys.
  */
 package com.nary.util;
@@ -46,16 +46,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
    *  {@link java.util.Map.Entry} that doubles as a node in the linked list
    *  of sequenced mappings.
    **/
-  private static class Entry<K, V> implements Map.Entry<K, V> {
-    // Note: This class cannot easily be made clonable.  While the actual
-    // implementation of a clone would be simple, defining the semantics is
-    // difficult.  If a shallow clone is implemented, then entry.next.prev !=
-    // entry, which is unintuitive and probably breaks all sorts of assumptions
-    // in code that uses this implementation.  If a deep clone is
-    // implementated, then what happens when the linked list is cyclical (as is
-    // the case with SequencedHashMap)?  It's impossible to know in the clone
-    // when to stop cloning, and thus you end up in a recursive loop,
-    // continuously cloning the "next" in the list.
+  class Entry<K, V> implements Map.Entry<K, V>, Cloneable {
 
     private final K key;
     private V value;
@@ -65,64 +56,70 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
       this.value = value;
     }
 
-    // per Map.Entry.getKey()
+    @Override
     public K getKey() {
       return this.key;
     }
 
-    // per Map.Entry.getValue()
+    @Override
     public V getValue() {
       return this.value;
     }
 
-    // per Map.Entry.setValue()
+    @Override
     public V setValue(V value) {
       V oldValue = this.value;
       this.value = value;
       return oldValue;
     }
 
+    @Override
     public int hashCode() {
       // implemented per api docs for Map.Entry.hashCode()
       return ((getKey() == null ? 0 : getKey().hashCode()) ^
               (getValue()==null ? 0 : getValue().hashCode()));
     }
 
-    public boolean equals(Object obj) {
-      if(obj == null) return false;
-      if(obj == this) return true;
-      if(!(obj instanceof Map.Entry)) return false;
-
-      Map.Entry other = (Map.Entry)obj;
-
-      // implemented per api docs for Map.Entry.equals(Object)
-      return((getKey() == null ?
-              other.getKey() == null :
-              getKey().equals(other.getKey()))  &&
-             (getValue() == null ?
-              other.getValue() == null :
-              getValue().equals(other.getValue())));
+	  /**
+       * Creates a _shallow_ clone of the Entry
+       * @return Shallow copy of Entry
+       * @throws CloneNotSupportedException
+       */
+    @Override
+    public Object clone() throws CloneNotSupportedException
+    {
+      Entry<K, V> clonedEntry = new Entry<>(this.key, this.value);
+      return clonedEntry;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      if(obj == null) {
+        return false;
+      }
+      else if(obj == this) {
+        return true;
+      }
+      else if(!(obj instanceof Map.Entry)) {
+        return false;
+      }
+      else {
+        Map.Entry other = (Map.Entry) obj;
+
+        // implemented per api docs for Map.Entry.equals(Object)
+        return((getKey() == null ?
+                  other.getKey() == null :
+                  getKey().equals(other.getKey())) &&
+                  (getValue() == null ?
+                      other.getValue() == null :
+                      getValue().equals(other.getValue())));
+      }
+    }
+
     public String toString() {
       return "[" + getKey() + "=" + getValue() + "]";
     }
   }
-
-  /**
-   *  Construct an empty sentinel used to hold the head (sentinel.next) and the
-   *  tail (sentinel.prev) of the list.  The sentinel has a <code>null</code>
-   *  key and value.
-   **/
-//  private static<KType, VType> Entry<KType, VType> createSentinel() {
-//    Entry s = new Entry<KType, VType>(null, null);
-//    s.prev = s;
-//    return s;
-//  }
-//
-//  /**
-//   *  Sentinel used to hold the head and tail of the list of entries.
-//   **/
-//  private Entry<K, V> sentinel;
 
   List<Entry<K, V>> orderedEntries = new LinkedList<>();
 
@@ -151,15 +148,15 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
 	 *  Construct a new sequenced hash map with default initial size and load
 	 *  factor and specified case-sensitivity.
 	 **/
-	public SequencedHashMap( boolean caseSensitive ) {
-		entries = new FastMap<K, Entry<K, V>>( caseSensitive );
+	public SequencedHashMap(boolean isCaseSensitive) {
+		entries = new FastMap<K, Entry<K, V>>(isCaseSensitive);
 	}
 
   /**
    *  Construct a new sequenced hash map with the specified initial size and
    *  default load factor and case-sensitive keys.
    *
-   *  @param initialSize the initial size for the hash table 
+   *  @param initialSize the initial size for the hash table
    *
    *  @see FastMap#FastMap(int)
    **/
@@ -170,21 +167,21 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
   /**
    *  Construct a new sequenced hash map and add all the elements in the
    *  specified map.  The order in which the mappings in the specified map are
-   *  added is defined by {@link #putAll(Map)}.  
+   *  added is defined by {@link #putAll(Map)}.
    **/
   public SequencedHashMap(Map m) {
     this();
     putAll(m);
   }
-  
-	public SequencedHashMap( Map m, boolean caseSensitive ) {
-		this( caseSensitive );
-		putAll( m );
-	}
-	
-	public boolean isCaseSensitive() {
-		return entries.isCaseSensitive();
-	}
+
+  public SequencedHashMap( Map m, boolean caseSensitive ) {
+      this( caseSensitive );
+      putAll( m );
+  }
+
+  public boolean isCaseSensitive() {
+      return entries.isCaseSensitive();
+  }
 
   /**
    *  Removes an internal entry from the linked list.  This does not remove
@@ -244,13 +241,13 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
     if(value == null) {
       for(Entry<K, V> pos : orderedEntries) {
         if(pos.getValue() == null) return true;
-      } 
+      }
     } else {
       for(Entry<K, V> pos : orderedEntries) {
         if(value.equals(pos.getValue())) return true;
       }
     }
-    return false;      
+    return false;
   }
 
   /**
@@ -260,7 +257,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
     // find entry for the specified key object
     Entry<K, V> entry = entries.get((K) o);
     if(entry == null) return null;
-      
+
     return entry.getValue();
   }
 
@@ -368,7 +365,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
       // do comparisons using equals(Object) and we know the specified key and
       // that in the map are equal in that sense.  This may cause a problem if
       // someone does not implement their hashCode() and/or equals(Object)
-      // method properly and then use it as a key in this map.  
+      // method properly and then use it as a key in this map.
     } else {
       // add new entry
       e = new Entry<K, V>(key, value);
@@ -390,7 +387,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
     Entry<K, V> e = removeImpl(key);
     return (e == null) ? null : e.getValue();
   }
-  
+
   /**
    *  Fully remove an entry from the map, returning the old entry or null if
    *  there was no such entry with the specified key.
@@ -487,16 +484,16 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
       }
 
       // more efficient impls than abstract set
-      public void clear() { 
-        SequencedHashMap.this.clear(); 
+      public void clear() {
+        SequencedHashMap.this.clear();
       }
-      public int size() { 
-        return SequencedHashMap.this.size(); 
+      public int size() {
+        return SequencedHashMap.this.size();
       }
-      public boolean isEmpty() { 
-        return SequencedHashMap.this.isEmpty(); 
+      public boolean isEmpty() {
+        return SequencedHashMap.this.isEmpty();
       }
-      public boolean contains(Object o) { 
+      public boolean contains(Object o) {
         return SequencedHashMap.this.containsKey(o);
       }
 
@@ -521,7 +518,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
               SequencedHashMap.this.removeImpl(pos.getKey());
               return true;
             }
-          } 
+          }
         } else {
           for(Entry<K, V> pos : orderedEntries) {
             if(value.equals(pos.getValue())) {
@@ -535,14 +532,14 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
       }
 
       // more efficient impls than abstract collection
-      public void clear() { 
-        SequencedHashMap.this.clear(); 
+      public void clear() {
+        SequencedHashMap.this.clear();
       }
-      public int size() { 
-        return SequencedHashMap.this.size(); 
+      public int size() {
+        return SequencedHashMap.this.size();
       }
-      public boolean isEmpty() { 
-        return SequencedHashMap.this.isEmpty(); 
+      public boolean isEmpty() {
+        return SequencedHashMap.this.isEmpty();
       }
       public boolean contains(Object o) {
         return SequencedHashMap.this.containsValue(o);
@@ -560,7 +557,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
       private Entry findEntry(Object o) {
         if(o == null) return null;
         if(!(o instanceof Map.Entry)) return null;
-        
+
         Map.Entry e = (Map.Entry)o;
         Entry<K, V> entry = entries.get(e.getKey());
         if(entry != null && entry.equals(e)) return entry;
@@ -568,25 +565,25 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
       }
 
       // required impl
-      public Iterator iterator() { 
-        return new OrderedIterator(ENTRY); 
+      public Iterator iterator() {
+        return new OrderedIterator(ENTRY);
       }
       public boolean remove(Object o) {
         Entry e = findEntry(o);
         if(e == null) return false;
 
         return SequencedHashMap.this.removeImpl(e.getKey()) != null;
-      }        
+      }
 
       // more efficient impls than abstract collection
-      public void clear() { 
-        SequencedHashMap.this.clear(); 
+      public void clear() {
+        SequencedHashMap.this.clear();
       }
-      public int size() { 
-        return SequencedHashMap.this.size(); 
+      public int size() {
+        return SequencedHashMap.this.size();
       }
-      public boolean isEmpty() { 
-        return SequencedHashMap.this.isEmpty(); 
+      public boolean isEmpty() {
+        return SequencedHashMap.this.isEmpty();
       }
       public boolean contains(Object o) {
         return findEntry(o) != null;
@@ -624,7 +621,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
      *  modification has occurred.
      **/
 	private transient long expectedModCount = modCount;
-    
+
     /**
      *  Construct an iterator over the sequenced elements in the order in which
      *  they were added.  The {@link #next()} method returns the type specified
