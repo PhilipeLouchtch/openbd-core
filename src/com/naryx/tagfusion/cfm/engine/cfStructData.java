@@ -136,23 +136,23 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 	}
 
 	public synchronized void setData(String _key, cfData _data) {
-		hashdata.put(_key, _data);
+		hashdata.put(_key.intern(), _data);
 	}
 
 	public synchronized void setData(String _key, String _data) {
-		hashdata.put(_key, new cfStringData(_data) );
+		hashdata.put(_key.intern(), new cfStringData(_data) );
 	}
 
 	public synchronized void setData(String _key, int _data) {
-		hashdata.put(_key, new cfNumberData(_data) );
+		hashdata.put(_key.intern(), new cfNumberData(_data) );
 	}
 
 	public synchronized void setData(String _key, long _data) {
-		hashdata.put(_key, new cfNumberData(_data) );
+		hashdata.put(_key.intern(), new cfNumberData(_data) );
 	}
 
 	public synchronized void setData(String _key, Date _data) {
-		hashdata.put(_key, new cfDateData(_data) );
+		hashdata.put(_key.intern(), new cfDateData(_data) );
 	}
 
 	public synchronized void deleteData(String _key) throws cfmRunTimeException {
