@@ -102,7 +102,12 @@ public class HashMapTimed<K extends String, V> implements CaseSensitiveMap<K, V>
 	@Override
 	public V put(K key, V value) {
 		IdleableObject<V> idleableObject = this.underlyingMap.put(key, new IdleableObject<V>(value));
-		return idleableObject.data;
+		if (idleableObject == null) {
+			return null;
+		}
+		else {
+			return idleableObject.data;
+		}
 	}
 
 	public V get(K key) {
