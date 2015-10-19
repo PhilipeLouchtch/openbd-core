@@ -417,28 +417,33 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
     return stringBuilder.toString();
   }
 
-  // TODO: Type Safe iterator
   @Override
   public Set<K> keySet() {
     return new AbstractSet<K>() {
 
       // required impls
-      public Iterator iterator() { return new OrderedIterator(KEY); }
+      @Override
+      public Iterator<K> iterator() { return new OrderedIterator(KEY); }
+      @Override
       public boolean remove(Object o) {
         Entry e = SequencedHashMap.this.removeImpl(o);
         return (e != null);
       }
 
       // more efficient impls than abstract set
+      @Override
       public void clear() {
         SequencedHashMap.this.clear();
       }
+      @Override
       public int size() {
         return SequencedHashMap.this.size();
       }
+      @Override
       public boolean isEmpty() {
         return SequencedHashMap.this.isEmpty();
       }
+      @Override
       public boolean contains(Object o) {
         return SequencedHashMap.this.containsKey(o);
       }
@@ -446,12 +451,14 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
     };
   }
 
-  // TODO: Type Safe iterator
   @Override
-  public Collection values() {
-    return new AbstractCollection() {
-      // required impl
-      public Iterator iterator() { return new OrderedIterator(VALUE); }
+  public Collection<V> values() {
+    return new AbstractCollection<V>() {
+
+      // required impls
+      @Override
+      public Iterator<V> iterator() { return new OrderedIterator(VALUE); }
+      @Override
       public boolean remove(Object value) {
         // do null comparison outside loop so we only need to do it once.  This
         // provides a tighter, more efficient loop at the expense of slight
@@ -476,57 +483,77 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
       }
 
       // more efficient impls than abstract collection
+      @Override
       public void clear() {
         SequencedHashMap.this.clear();
       }
+      @Override
       public int size() {
         return SequencedHashMap.this.size();
       }
+      @Override
       public boolean isEmpty() {
         return SequencedHashMap.this.isEmpty();
       }
+      @Override
       public boolean contains(Object o) {
         return SequencedHashMap.this.containsValue(o);
       }
     };
   }
 
-  // TODO: Type safe
   @Override
-  public Set entrySet() {
-    return new AbstractSet() {
+  public Set<Map.Entry<K, V>> entrySet() {
+    return new AbstractSet<Map.Entry<K, V>>() {
       // helper
-      private Entry findEntry(Object o) {
-        if(o == null) return null;
-        if(!(o instanceof Map.Entry)) return null;
+      private Entry<K, V> findEntry(Object o) {
+        if(o == null) {
+          return null;
+        }
+        else if(!(o instanceof Map.Entry)) {
+          return null;
+        }
+        else
+        {
+          Map.Entry<K, V> e = (Map.Entry<K, V>) o;
 
-        Map.Entry e = (Map.Entry)o;
-        Entry<K, V> entry = entries.get(e.getKey());
-        if(entry != null && entry.equals(e)) return entry;
-        else return null;
+          Entry<K, V> entry = entries.get(e.getKey());
+          if (entry != null && entry.equals(e)) {
+            return entry;
+          }
+          else {
+            return null;
+          }
+        }
       }
 
       // required impl
-      public Iterator iterator() {
+      @Override
+      public Iterator<Map.Entry<K, V>> iterator() {
         return new OrderedIterator(ENTRY);
       }
+      @Override
       public boolean remove(Object o) {
-        Entry e = findEntry(o);
+        Entry<K, V> e = findEntry(o);
         if(e == null) return false;
 
         return SequencedHashMap.this.removeImpl(e.getKey()) != null;
       }
 
       // more efficient impls than abstract collection
+      @Override
       public void clear() {
         SequencedHashMap.this.clear();
       }
+      @Override
       public int size() {
         return SequencedHashMap.this.size();
       }
+      @Override
       public boolean isEmpty() {
         return SequencedHashMap.this.isEmpty();
       }
+      @Override
       public boolean contains(Object o) {
         return findEntry(o) != null;
       }
@@ -539,6 +566,7 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
   private static final int ENTRY = 2;
   private static final int REMOVED_MASK = 0x80000000;
 
+  // TODO: Make type-safe by either subclassing for each return type or an anonymous function given to ctor
   private class OrderedIterator implements Iterator {
     /**
      *  Holds the type that should be returned from the iterator.  The value
