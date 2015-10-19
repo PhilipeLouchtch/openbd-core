@@ -30,8 +30,11 @@
 
 package com.nary.util;
 
-import java.util.Iterator;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.collections.set.ListOrderedSet;
+import org.apache.commons.lang.NotImplementedException;
 import org.aw20.util.SystemClockEvent;
 
 import com.naryx.tagfusion.cfm.engine.cfEngine;
@@ -44,10 +47,12 @@ import com.naryx.tagfusion.cfm.engine.cfEngine;
 
 // can't extend FastMap, which doesn't allow the clear() method to be overridden
 //public class HashMapTimed<K extends String, V> extends FastMap<K, HashMapTimed.IdleableObject<V>> implements SystemClockEvent {
-public class HashMapTimed<K extends String, V> extends FastMap<K, V> implements SystemClockEvent {
+public class HashMapTimed<K extends String, V> implements CaseSensitiveMap<K, V>, SystemClockEvent {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	private HashMapTimedCallback callback = null;
+
+	private final FastMap<K, IdleableObject<V>> underlyingMap = new FastMap<>();
 	
 	public HashMapTimed() {
 		this(600);
@@ -58,11 +63,11 @@ public class HashMapTimed<K extends String, V> extends FastMap<K, V> implements 
 	}
 	
 	public void setCallback( HashMapTimedCallback callback ){
-		this.callback	= callback;
+		this.callback = callback;
 	}
 	
 	public void destroy(){
-		cfEngine.thisPlatform.timerCancel( this );
+		cfEngine.thisPlatform.timerCancel(this);
 	}
 
 	protected void finalize() throws Throwable {
@@ -72,50 +77,169 @@ public class HashMapTimed<K extends String, V> extends FastMap<K, V> implements 
 	}
 
 	public synchronized void clockEvent(int type) {
-		Iterator<K> iter = super.keySet().iterator();
-//		while (iter.hasNext()) {
-//			String key = iter.next();
-//			IdleableObject<V> idleableObject = super.get(key);
-//			if (idleableObject.isIdle()) {
-//				iter.remove();
-//
-//				if ( callback != null )
-//					callback.onRemoveFromMap(key, idleableObject.data);
-//
-//			} else {
-//				idleableObject.setIdle(true);
-//			}
-//		}
+		Iterator<K> iter = keySet().iterator();
+		while (iter.hasNext())
+		{
+			K key = iter.next();
+			IdleableObject<V> idleableObject = this.underlyingMap.get(key);
+
+			if (idleableObject.isIdle())
+			{
+				iter.remove();
+
+				if (callback != null)
+				{
+					callback.onRemoveFromMap(key, idleableObject.data);
+				}
+			}
+			else
+			{
+				idleableObject.setIdle(true);
+			}
+		}
 	}
 
-//	@Override
-//	public IdleableObject<V> put(K key, IdleableObject<V> value)
-//	{
-//		return super.put(key, value);
-//	}
-
-	public synchronized V put(K key, V value) {
-		return super.put(key, value);
-		//return super.put(key, new IdleableObject<V>(value)).data;
+	@Override
+	public V put(K key, V value) {
+		IdleableObject<V> idleableObject = this.underlyingMap.put(key, new IdleableObject<V>(value));
+		return idleableObject.data;
 	}
 
-	public synchronized V get(K key) {
-		return super.get(key);
+	public V get(K key) {
+		if (containsKey(key))
+		{
+			IdleableObject<V> idleableObject = this.underlyingMap.get(key);
+			idleableObject.setIdle(false);
+			return idleableObject.data;
+		}
+		else
+		{
+			return null;
+		}
+	}
 
-//		if (containsKey(Key)) {
-//			IdleableObject<V> idleableObject = super.get(key);
-//			idleableObject.setIdle(false);
-//			return idleableObject.data;
-//		} else {
-//			return null;
-//		}
+	@Override
+	public boolean isCaseSensitive()
+	{
+		return this.underlyingMap.isCaseSensitive();
+	}
+
+	@Override
+	public int size()
+	{
+		return this.underlyingMap.size();
+	}
+
+	@Override
+	public boolean isEmpty()
+	{
+		return this.underlyingMap.isEmpty();
+	}
+
+	@Override
+	public boolean containsKey(Object key)
+	{
+		return this.underlyingMap.containsKey(key);
+	}
+
+	@Override
+	public boolean containsValue(Object value)
+	{
+		return this.underlyingMap.containsValue(value);
+	}
+
+	@Override
+	public V get(Object key)
+	{
+		IdleableObject<V> idleableObject = this.underlyingMap.get(key);
+		return idleableObject.data;
+	}
+
+	@Override
+	public V remove(Object key)
+	{
+		IdleableObject<V> previousIdleableObject = this.underlyingMap.remove(key);
+		return previousIdleableObject.data;
+	}
+
+
+	@Override
+	public V replace(K key, V value)
+	{
+		IdleableObject<V> previousIdleableObject = this.underlyingMap.replace(key, new IdleableObject<V>(value));
+		return previousIdleableObject.data;
+	}
+
+	@Override
+	public void putAll(Map<? extends K, ? extends V> sourceMap)
+	{
+		// Can't use underlyingMap.putAll as our underlyingMap holds V objects wrapped in IdleableObject, so have to wrap each one here
+		for (Entry<? extends K, ? extends V> sourceEntry : sourceMap.entrySet())
+		{
+			this.underlyingMap.put(sourceEntry.getKey(), new IdleableObject<V>(sourceEntry.getValue()));
+		}
+	}
+
+	@Override
+	public void clear()
+	{
+		this.underlyingMap.clear();
+	}
+
+	@Override
+	public Set<K> keySet()
+	{
+		return this.underlyingMap.keySet();
+	}
+
+	@Override
+	public Collection<V> values()
+	{
+		// Can't simply use the underlyingMap.value method as the values are wrapped in IdleableObject, have to unwrap them manually here
+		ArrayList<V> values = new ArrayList<>(this.underlyingMap.size());
+		for (IdleableObject<V> idleableObject: this.underlyingMap.values())
+		{
+			values.add(idleableObject.data);
+		}
+
+		return values;
+	}
+
+	@Override
+	public Set<Map.Entry<K, V>> entrySet()
+	{
+		// Can't simply use the underlyingMap.value method as the values are wrapped in IdleableObject, have to unwrap them manually here and re-create the entities
+		Set<Entry<K, V>> entries = new HashSet<>();
+		for (Entry<K, IdleableObject<V>> wrappedEntry : this.underlyingMap.entrySet())
+		{
+			entries.add(new AbstractMap.SimpleEntry<K, V>(wrappedEntry.getKey(), wrappedEntry.getValue().data));
+		}
+		
+		return entries;
+	}
+
+	@Override
+	public V putIfAbsent(K key, V value)
+	{
+		IdleableObject<V> previousIdleableObject = this.underlyingMap.putIfAbsent(key, new IdleableObject<V>(value));
+		return previousIdleableObject.data;
+	}
+
+	@Override
+	public boolean remove(Object key, Object value)
+	{
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean replace(K key, V oldValue, V newValue)
+	{
+		throw new UnsupportedOperationException();
 	}
 
 	// ------------------------------------------------
 	// ------------------------------------------------
-
-	static class IdleableObject<T> {
-
+	private class IdleableObject<T> {
 		public T data;
 		private boolean idle;
 

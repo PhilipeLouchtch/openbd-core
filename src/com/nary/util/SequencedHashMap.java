@@ -867,6 +867,63 @@ public class SequencedHashMap<K extends String, V> implements CaseSensitiveMap<K
     }
   }
 
+  // Should this function also move the Entry to the "newest" end of orderedEntries list if not absent?
+  @Override
+  public V putIfAbsent(K key, V value)
+  {
+    Entry<K, V> entryToPut = new Entry<>(key, value);
+    Entry<K, V> entryPrevious = this.entries.putIfAbsent(key, entryToPut);
+
+    if (entryPrevious == null) {
+      // entry was not present, add it to the orderedEntries list
+      this.orderedEntries.add(entryToPut);
+      return null;
+    }
+    else {
+      return entryPrevious.value;
+    }
+  }
+
+  @Override
+  public boolean remove(Object key, Object value)
+  {
+    boolean valueIsRemoved = false;
+
+    V valueAtKey = get(key);
+    if (value.equals(valueAtKey)) {
+      removeImpl(key);
+      valueIsRemoved = true;
+    }
+
+    return valueIsRemoved;
+  }
+
+  @Override
+  public boolean replace(K key, V oldValue, V newValue)
+  {
+    boolean valueIsReplaced = false;
+
+    V valueAtKey = get(key);
+    if (valueAtKey.equals(oldValue)) {
+      put(key, newValue);
+      valueIsReplaced = true;
+    }
+
+    return valueIsReplaced;
+  }
+
+  @Override
+  public V replace(K key, V value)
+  {
+    V oldValue = null;
+
+    if (containsKey(key)) {
+      oldValue = put(key, value);
+    }
+
+    return oldValue;
+  }
+
   // add a serial version uid, so that if we change things in the future
   // without changing the format, we can still deserialize properly.
   private static final long serialVersionUID = 3380552487888102931L;

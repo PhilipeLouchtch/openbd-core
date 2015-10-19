@@ -36,14 +36,12 @@
 package com.nary.util;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>, Serializable {
 	private static final long serialVersionUID = 1L;
-	final static Set emptySet	= new HashSet();
 	
 	@Override
 	public boolean isCaseSensitive() {
@@ -66,7 +64,7 @@ public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>
 
 	@Override
 	public Set<java.util.Map.Entry<K, V>> entrySet() {
-		return null;
+		return new HashSet<>();
 	}
 
 	@Override
@@ -81,7 +79,7 @@ public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>
 
 	@Override
 	public Set<K> keySet() {
-		return emptySet;
+		return new HashSet<>();
 	}
 
 	@Override
@@ -105,6 +103,30 @@ public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>
 
 	@Override
 	public Collection<V> values() {
+		return new ArrayList<>();
+	}
+
+	@Override
+	public V putIfAbsent(K key, V value)
+	{
+		return null;
+	}
+
+	@Override
+	public boolean remove(Object key, Object value)
+	{
+		return false;
+	}
+
+	@Override
+	public boolean replace(K key, V oldValue, V newValue)
+	{
+		return false;
+	}
+
+	@Override
+	public V replace(K key, V value)
+	{
 		return null;
 	}
 }

@@ -29,7 +29,7 @@
 
 package com.nary.util;
 
-public interface CaseSensitiveMap<K extends String, V> extends java.util.Map<K, V> {
+public interface CaseSensitiveMap<K extends String, V> extends java.util.concurrent.ConcurrentMap<K, V> {
 
 	boolean isCaseSensitive();
 	

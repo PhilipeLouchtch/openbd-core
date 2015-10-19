@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -51,7 +52,7 @@ import com.naryx.tagfusion.cfm.engine.cfData;
 import com.naryx.tagfusion.cfm.engine.cfStringData;
 import com.naryx.tagfusion.cfm.tag.cfDUMP;
 
-public abstract class XmlHashtable implements CaseSensitiveMap,Serializable {
+public abstract class XmlHashtable implements CaseSensitiveMap, Serializable {
 	private static final long serialVersionUID = -5659752826018322960L;
 	protected Node	nodeData	= null;
 	private boolean	isCaseSensitive;
@@ -104,6 +105,12 @@ public abstract class XmlHashtable implements CaseSensitiveMap,Serializable {
 				return true;
 		}
 		return false;
+	}
+
+	@Override
+	public boolean containsValue(Object value) {
+		// Due to migration to ConcurrentHashMap
+		throw new NotImplementedException();
 	}
 
 
@@ -276,6 +283,34 @@ public abstract class XmlHashtable implements CaseSensitiveMap,Serializable {
 
 	public boolean isEmpty() {
 		return nodeData.hasChildNodes();
+	}
+
+	@Override
+	public Object putIfAbsent(Object key, Object value)
+	{
+		// Due to migration to ConcurrentHashMap
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean remove(Object key, Object value)
+	{
+		// Due to migration to ConcurrentHashMap
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public boolean replace(Object key, Object oldValue, Object newValue)
+	{
+		// Due to migration to ConcurrentHashMap
+		throw new NotImplementedException();
+	}
+
+	@Override
+	public Object replace(Object key, Object value)
+	{
+		// Due to migration to ConcurrentHashMap
+		throw new NotImplementedException();
 	}
 
 	private class Entry implements Map.Entry {
