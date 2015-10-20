@@ -73,29 +73,44 @@ public class cfStringData extends cfJavaObjectData {
     
 	private transient cfBooleanData booleanData; // the boolean representation of this string
 	private boolean maybeBooleanConvertible = true; // assume true until proven otherwise
+
+	private void setData(String data) {
+		if (data == null) {
+			this.data = "";
+		}
+		else if (data.length() <= 50) {
+			this.data = data.intern();
+		}
+		else {
+			this.data = data;
+		}
+	}
     
 	public cfStringData( String _data ){
-		super( _data );
-		data = ( _data == null ? "" : _data );
+		super(_data);
+		setData(_data);
 	}
     
 	public cfStringData( byte[] _dataBytes ) {
 		super( null );
 		dataBytes = _dataBytes;
-		if ( _dataBytes == null )
-			data = "";
+		if (_dataBytes == null) {
+			setData("");
+		}
 	}
     
 	public cfStringData( char[] _dataChars ) {
 		super( null );
 		dataChars = _dataChars;
-		if ( _dataChars == null )
-			data = "";
+		if (_dataChars == null) {
+			setData("");
+		}
 	}
 
 	public void setString( String _data ) {
 		super.setInstance( _data );
-		data = ( _data == null ? "" : _data );
+
+		setData(_data);
 		dataBytes = null;
 		dataChars = null;
 		
