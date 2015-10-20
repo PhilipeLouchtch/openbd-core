@@ -735,7 +735,7 @@ public class cfComponentData extends cfComponentDataBase implements Serializable
 		out.write("component ");
 		out.write(_componentName);
 		out.write(longVersion ? " [long version]" : " [short version]");
-		// out.write( " (" + this.hashCode() + ")" ); // useful for debugging
+		out.write( " (" + Integer.toHexString(System.identityHashCode(this)) + ")" ); // generate a simple hash of the object's identity useful for debugging
 		out.write("</th>");
 
 		// handle "this" scoped variables in a synchronized fashion
