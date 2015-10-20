@@ -410,13 +410,19 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 					if (_top > 1) {
 						cfData value = entry.getValue();
 						if (value != null) {
-							int newTop = (value.getDataType() == cfData.CFSTRUCTDATA ? _top - 1 : _top);
-
-							if (longVersion) {
-								value.dumpLong(out, "", newTop);
+							// Self-reference; don't dump the value again in itself (can cause stack-overflows otherwise)
+							if (value == this) {
+								out.write("<span style='background-color: blue; color: white;'>[SELF-REFERENCE]</span>");
 							}
 							else {
-								value.dump(out, "", newTop);
+								int newTop = (value.getDataType() == cfData.CFSTRUCTDATA ? _top - 1 : _top);
+
+								if (longVersion) {
+									value.dumpLong(out, "", newTop);
+								}
+								else {
+									value.dump(out, "", newTop);
+								}
 							}
 						}
 						else {

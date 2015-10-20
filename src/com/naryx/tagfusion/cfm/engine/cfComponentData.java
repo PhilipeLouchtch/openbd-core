@@ -42,6 +42,7 @@ import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.nary.util.StringComperatorSingletons;
 import javolution.util.FastList;
@@ -755,12 +756,23 @@ public class cfComponentData extends cfComponentDataBase implements Serializable
 		}
 
 		// "this" scoped variables (non-UDF variables)
-		Iterator<String> itr = super.keySet().iterator();
-		while (itr.hasNext()) {
-			String name = itr.next();
-			if ( !isProtectedScope(name)) {
+		Set<String> stuff = super.keySet();
+		for (String name : stuff)
+		{
+			if (!isProtectedScope(name))
+			{
 				cfData datum = super.getData(name);
-				if (((datum.getDataType() == cfData.CFUDFDATA) && dumpUDF) || ((datum.getDataType() != cfData.CFUDFDATA) && !dumpUDF)) {
+				if (datum == this && !dumpUDF)
+				{
+					// Self-reference; don't dump the value again in itself (can cause stack-overflows otherwise)
+					out.write("<tr><td class='cfdump_td_object'>");
+					out.write(name);
+					out.write("</td><td class='cfdump_td_value'>");
+					out.write("<span style='background-color: blue; color: white;'>[SELF-REFERENCE]</span>");
+					out.write("</td>");
+				}
+				else if (((datum.getDataType() == cfData.CFUDFDATA) && dumpUDF) || ((datum.getDataType() != cfData.CFUDFDATA) && !dumpUDF))
+				{
 					out.write("<tr><td class='cfdump_td_object'>");
 					out.write(name);
 					out.write("</td><td class='cfdump_td_value'>");
