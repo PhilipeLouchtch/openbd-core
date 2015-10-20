@@ -198,7 +198,7 @@ public class CFFunctionExpression extends CFExpression {
 				if (nextKey.equalsIgnoreCase("argumentcollection")) {
 					if (nextArgVal.isStruct()) {
 						cfStructData argCollection = (cfStructData) nextArgVal;
-						Object[] argKeys = argCollection.keys();
+						Object[] argKeys = argCollection.keysArray();
 						for (int i = 0; i < argKeys.length; i++) {
 							String key = (String) argKeys[i];
 							cfData nextArg = argCollection.getData(key);

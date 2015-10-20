@@ -162,14 +162,26 @@ public class cfJ2EEApplicationData extends cfApplicationData {
 		}
 	}
 
-	public Object[] keys() {
-		Enumeration enumer = applicationScope.getAttributeNames();
-		List<Object> keys = new ArrayList<Object>();
+	public String[] keysArray() {
+		Enumeration<String> enumer = applicationScope.getAttributeNames();
+		List<String> keys = new ArrayList<>();
 
 		while (enumer.hasMoreElements())
 			keys.add(enumer.nextElement());
 
-		return keys.toArray();
+		String[] keysArray = new String[keys.size()];
+		return keys.toArray(keysArray);
+	}
+
+	public Set<String> keys() {
+		Enumeration<String> enumer = applicationScope.getAttributeNames();
+		HashSet<String> keySet = new HashSet<>();
+
+		while (enumer.hasMoreElements()) {
+			keySet.add(enumer.nextElement());
+		}
+
+		return keySet;
 	}
 
 	public int size() {

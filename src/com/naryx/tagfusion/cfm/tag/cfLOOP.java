@@ -234,7 +234,7 @@ public class cfLOOP extends cfTag implements Serializable {
 				}
 			}
 		}else{
-			sKeys = structData.keys();
+			sKeys = structData.keysArray();
 		}
 		
 		cfLoopStringData loopIndex = new cfLoopStringData( "" );

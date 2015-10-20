@@ -129,7 +129,7 @@ public class XmlTransform extends functionBase {
 
 			// Add parameters (if any)
 			if (structure != null) {
-				Object[] keys = structure.keys();
+				Object[] keys = structure.keysArray();
 				for (int i = 0; i < keys.length; i++)
 					transformer.setParameter(keys[i].toString(), tagUtils.getNatural(structure.getData(keys[i].toString())));
 			}

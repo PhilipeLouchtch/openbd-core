@@ -121,7 +121,7 @@ public class cfJ2EERequestStructData extends cfStructData {
 		}
 	}
 
-	public Object[] keys() {
+	public String[] keysArray() {
 		List<Object> keys = new ArrayList<Object>();
 
 		if (requestScope != null) {
@@ -132,8 +132,9 @@ public class cfJ2EERequestStructData extends cfStructData {
 				keys.add(enumer.nextElement());
 
 		}
-		
-		return keys.toArray();
+
+		String[] keysArray = new String[keys.size()];
+		return keys.toArray(keysArray);
 	}
 
 	public int size() {

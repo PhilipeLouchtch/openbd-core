@@ -103,7 +103,7 @@ public class Console extends functionBase {
 		StringBuilder s = new StringBuilder( 1024 );
 		
 		// Get the max width -----------------------
-		Object[] keys = data.keys();
+		Object[] keys = data.keysArray();
 		int maxWidth = 0;
 		for ( int c=0; c<keys.length;c++){
 			if ( keys[c].toString().length() > maxWidth )

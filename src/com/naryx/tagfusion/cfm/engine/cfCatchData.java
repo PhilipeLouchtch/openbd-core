@@ -241,11 +241,11 @@ public class cfCatchData extends cfStructData implements java.io.Serializable {
 	public cfData duplicate() {
 		cfCatchData duplicate = new cfCatchData();
 
-		Object[] keys = this.keys();
+		String[] keys = this.keysArray();
 
 		for (int i = 0; i < keys.length; i++) {
 			cfData nextDataCopy = null;
-			String nextKey = (String) keys[i];
+			String nextKey = keys[i];
 			cfData nextData = getData(nextKey);
 			if (nextData != null) {
 				nextDataCopy = nextData.duplicate();

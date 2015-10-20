@@ -214,7 +214,7 @@ public class cfFormData extends cfUrlData implements java.io.Serializable{
   }
   
 	public void validateFormFields( cfSession parentSession ) throws cfmAbortException {
-		Object [] keys  = keys();
+		Object [] keys  = keysArray();
     
 		String parameter;
 		String type;

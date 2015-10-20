@@ -311,7 +311,7 @@ public class cfCOMPONENT extends cfTag implements Serializable {
 		// are added to the component "this" scope; see bug #2849
 		if (componentData != null) {
 			cfStructData variablesScope = componentData.getVariablesScope();
-			Object[] keys = variablesScope.keys();
+			Object[] keys = variablesScope.keysArray();
 			for (int i = 0; i < keys.length; i++) {
 				String key = keys[i].toString();
 				cfData cfdata = variablesScope.getData(key);
@@ -366,7 +366,7 @@ public class cfCOMPONENT extends cfTag implements Serializable {
 			implementsMetadata.addElement(interfaceData.getMetaData());
 
 			// check that all interface methods are implemented
-			Object[] keys = interfaceData.keys();
+			Object[] keys = interfaceData.keysArray();
 			for (int j = 0; j < keys.length; j++) {
 				String key = keys[j].toString();
 				// interface "this" scope will only contain UDFs
@@ -384,7 +384,7 @@ public class cfCOMPONENT extends cfTag implements Serializable {
 	private static void setFunctionSuperScope(cfComponentData componentData, cfComponentData superComponent) {
 		// UDFs were placed in the variables and "this" scopes by cfFile.render()
 		cfStructData variablesScope = componentData.getVariablesScope();
-		Object[] keys = variablesScope.keys();
+		Object[] keys = variablesScope.keysArray();
 		for (int i = 0; i < keys.length; i++) {
 			String key = keys[i].toString();
 			cfData cfdata = variablesScope.getData(key);
@@ -402,7 +402,7 @@ public class cfCOMPONENT extends cfTag implements Serializable {
 		// inherit the variables scope by copying variables from the superclass variables scope
 		cfStructData variablesScope = componentData.getVariablesScope();
 		cfStructData superVariables = superComponent.getVariablesScope();
-		Object[] keys = superVariables.keys();
+		Object[] keys = superVariables.keysArray();
 		for (int i = 0; i < keys.length; i++) {
 			String key = keys[i].toString();
 			// do not copy overridden variables (especially "this")
@@ -416,7 +416,7 @@ public class cfCOMPONENT extends cfTag implements Serializable {
 
 		// inherit the "this" scope by copying the contents of the super's
 		// this scope to the current object this scope
-		keys = superComponent.keys();
+		keys = superComponent.keysArray();
 		for (int i = 0; i < keys.length; i++) {
 			String key = keys[i].toString();
 			cfData superValue = superComponent.getData(key);

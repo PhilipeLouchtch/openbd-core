@@ -96,7 +96,7 @@ public class cfJavaStructData extends cfStructData implements java.io.Serializab
 	protected void dump( java.io.PrintWriter out, boolean longVersion, String _lbl, int _top )	{
 		out.write( "<table class='cfdump_table_struct'>" );
         
-		Object[] keys = keys();
+		Object[] keys = keysArray();
 		if ( keys.length > 0 )
 		{
 			out.write( "<th class='cfdump_th_struct' colspan='2'>" );
@@ -166,7 +166,7 @@ public class cfJavaStructData extends cfStructData implements java.io.Serializab
 
 	public Map copy() {
 		FastMap copy = new FastMap();
-		Object[] keys = keys();
+		Object[] keys = keysArray();
 		
 		for ( int i = 0; i < keys.length; i ++ )
 		{
@@ -229,8 +229,8 @@ public class cfJavaStructData extends cfStructData implements java.io.Serializab
 		return theMap.isEmpty();
 	}
 
-	public Object[] keys() {
-		return theMap.keySet().toArray();
+	public Set keys() {
+		return theMap.keySet();
 	}
 
 	public Set keySet() {

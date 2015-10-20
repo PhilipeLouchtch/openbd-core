@@ -376,7 +376,7 @@ public class cfTHREAD extends cfTag implements Serializable {
 		// Note that the ATTRIBUTECOLLECTION is handled first so that specified
 		// parameters can override those also supplied in the ATTRIBUTECOLLECTION
 		if ( _attribs != null ) {
-			Object[] keys = _attribs.keys();
+			Object[] keys = _attribs.keysArray();
 			for ( int i = 0; i < keys.length; i++ ) {
 			String key = (String)keys[ i ];
 				cfData data = _attribs.getData( key ).duplicate();

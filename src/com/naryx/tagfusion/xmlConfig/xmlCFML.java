@@ -62,7 +62,7 @@ public class xmlCFML {
 
 	public xmlCFML(cfStructData admin) throws cfmRunTimeException {
 		data = new Hashtable<String, Object>();
-		Object[] keys = admin.keys();
+		Object[] keys = admin.keysArray();
 
 		for (int i = 0; i < keys.length; i++) {
 			String key = (String) keys[i];

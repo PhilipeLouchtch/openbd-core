@@ -481,7 +481,7 @@ public class JournalSession implements debuggerListener, RequestListener {
 	private cfStructData copyStruct( cfStructData src ){
 		cfStructData	dest = new cfStructData();
 		
-		Object[] keys = src.keys();
+		Object[] keys = src.keysArray();
 		for ( Object key : keys ){
 			dest.put(key, src.get(key) );
 		}

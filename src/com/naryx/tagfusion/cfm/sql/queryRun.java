@@ -177,7 +177,7 @@ public class queryRun extends functionBase {
 			preparedData pData = new preparedData();
 			pData.setIN();
 			
-			Object[] keys = sdata.keys();
+			Object[] keys = sdata.keysArray();
 			
 			String separator = ",";
 			boolean bList = false;

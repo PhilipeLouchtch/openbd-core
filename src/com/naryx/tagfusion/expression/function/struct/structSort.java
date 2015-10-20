@@ -110,7 +110,7 @@ public class structSort extends functionBase {
 		List<String> subelements = getPathToSubelements(pathToSubelements);
 
 		// get the struct keys
-		Object[] keys = baseStruct.keys();
+		Object[] keys = baseStruct.keysArray();
 		String nextKey;
 		cfData rawValue = null;
 		List<Comparable> theElements = new ArrayList<Comparable>(keys.length);

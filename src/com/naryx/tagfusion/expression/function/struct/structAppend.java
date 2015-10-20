@@ -86,7 +86,7 @@ public class structAppend extends functionBase {
 			cfStructData struct = (cfStructData) struct1;
 			cfStructData structToAppend = (cfStructData) struct2;
 
-			Object[] keys = structToAppend.keys();
+			Object[] keys = structToAppend.keysArray();
 
 			for (int i = 0; i < keys.length; i++) {
 				key = (String) keys[i];

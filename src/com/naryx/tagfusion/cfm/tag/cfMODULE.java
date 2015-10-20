@@ -272,7 +272,7 @@ public class cfMODULE extends cfINCLUDE implements cfOptionalBodyTag, Serializab
 			return;
 		}
 
-		Object[] keys = dataColls.keys();
+		Object[] keys = dataColls.keysArray();
 		for (int i = 0; i < keys.length; i++) {
 			String nextKey = (String) keys[i];
 			_thisTag.setData(nextKey, dataColls.getData(nextKey));
@@ -320,7 +320,7 @@ public class cfMODULE extends cfINCLUDE implements cfOptionalBodyTag, Serializab
 
 			cfData attributeCollection = getDynamic(_Session, "ATTRIBUTECOLLECTION");
 			if (attributeCollection.getDataType() == cfData.CFSTRUCTDATA) {
-				Object[] keys = ((cfStructData) attributeCollection).keys();
+				Object[] keys = ((cfStructData) attributeCollection).keysArray();
 				for (int i = 0; i < keys.length; i++) {
 					key = (String) keys[i];
 					attributeValues.setData(key, ((cfStructData) attributeCollection).getData(key));

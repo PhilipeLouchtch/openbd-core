@@ -129,7 +129,7 @@ public class CFJavaMethodExpression extends CFExpression implements javaMethodDa
 			if (nextKey.equalsIgnoreCase("argumentcollection")) {
 				if (nextEvaluatedArg.isStruct()) {
 					cfStructData argCollection = (cfStructData) nextEvaluatedArg;
-					Object[] argKeys = argCollection.keys();
+					Object[] argKeys = argCollection.keysArray();
 					for (int i = 0; i < argKeys.length; i++) {
 						String key = (String) argKeys[i];
 						argStruct.setData(key, argCollection.getData(key));

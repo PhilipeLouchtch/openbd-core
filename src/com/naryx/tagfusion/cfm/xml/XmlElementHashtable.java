@@ -173,7 +173,7 @@ public class XmlElementHashtable extends XmlNodeHashtable {
 					cfXmlDataAttributeStruct attribs = (cfXmlDataAttributeStruct) getXmlAttributes();
 					cfStructData attribsToAdd = (cfStructData) value;
 
-					Object[] keys = attribsToAdd.keys();
+					Object[] keys = attribsToAdd.keysArray();
 					for (int i = 0; i < keys.length; i++) {
 						String str = keys[i].toString();
 						cfData valueData = attribsToAdd.getData(str);
@@ -242,7 +242,7 @@ public class XmlElementHashtable extends XmlNodeHashtable {
 
 	protected void buildParentElement(cfStructData s, Node parent) throws cfmRunTimeException {
 		try {
-			Object[] keys = s.keys();
+			Object[] keys = s.keysArray();
 			for (int i = 0; i < keys.length; i++) {
 				String k = (String) keys[i];
 				cfData d = s.getData(k);
@@ -374,7 +374,7 @@ public class XmlElementHashtable extends XmlNodeHashtable {
 		out.write("</td></tr>");
 
 		dd = getXmlAttributes();
-		if ((dd != null) && (((cfXmlDataAttributeStruct) dd).keys().length > 0)) {
+		if ((dd != null) && (((cfXmlDataAttributeStruct) dd).keysArray().length > 0)) {
 			out.write("<tr><td class='cfdump_td_xml'>");
 			out.write("XmlAttributes");
 			out.write("</td><td class='cfdump_td_value'>");

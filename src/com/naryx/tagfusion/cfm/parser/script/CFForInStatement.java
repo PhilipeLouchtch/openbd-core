@@ -104,7 +104,7 @@ public class CFForInStatement extends CFParsedStatement implements java.io.Seria
 		if (temp.isStruct()) {
 			cfStructData struct = (cfStructData) temp;
 
-			Object[] keys = struct.keys();
+			Object[] keys = struct.keysArray();
 			for (int i = 0; i < keys.length; i++) {
 				String nextStr = (String) keys[i];
 				var.Set(new cfStringData(nextStr), context);

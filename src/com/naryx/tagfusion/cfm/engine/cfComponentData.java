@@ -188,9 +188,9 @@ public class cfComponentData extends cfComponentDataBase implements Serializable
 		dupComponent._superComponent = this._superComponent;
 
 		// duplicate the "this" scope
-		Object[] keys = this.keys();
+		String[] keys = this.keysArray();
 		for (int i = 0; i < keys.length; i++) {
-			String nextKey = (String) keys[i];
+			String nextKey = keys[i];
 			cfData nextData = this.getData(nextKey);
 			if (nextData != null) {
 				cfData nextDataCopy = nextData.duplicate();
@@ -206,7 +206,7 @@ public class cfComponentData extends cfComponentDataBase implements Serializable
 			dupComponent._variablesScope = null;
 		} else {
 			// duplicate the "variables" scopes, ignoring the "this" scope
-			keys = this._variablesScope.keys();
+			keys = this._variablesScope.keysArray();
 			for (int i = 0; i < keys.length; i++) {
 				String nextKey = (String) keys[i];
 				if (!nextKey.equalsIgnoreCase("this")) { // don't duplicate the "this"
@@ -823,10 +823,10 @@ public class cfComponentData extends cfComponentDataBase implements Serializable
 			sb.append("<struct>");
 		}
 
-		Object[] keys = super.keys();
+		String[] keys = super.keysArray();
 
 		for (int idx = 0; idx < keys.length; idx++) {
-			String key = (String) keys[idx];
+			String key = keys[idx];
 			cfData datum = super.getData(key);
 			byte type = datum.getDataType();
 			if (type >= 1 && type <= 20) {

@@ -31,6 +31,7 @@ package com.naryx.tagfusion.cfm.engine;
 
 import java.io.PrintWriter;
 import java.util.Map;
+import java.util.Set;
 
 import com.naryx.tagfusion.cfm.parser.CFCall;
 import com.naryx.tagfusion.cfm.parser.CFCallScope;
@@ -164,7 +165,7 @@ public class cfCallerData extends cfStructData implements java.io.Serializable{
     return varscope.isEmpty();
   }
 
-  public Object[] keys() {
+  public Set<String> keys() {
     return varscope.keys();
   }
 

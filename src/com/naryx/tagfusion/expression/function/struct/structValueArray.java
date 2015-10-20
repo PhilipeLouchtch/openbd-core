@@ -83,7 +83,7 @@ public class structValueArray extends functionBase {
 		if (!structure.isStruct())
 			throwException(_session, "Parameter isn't of type STRUCTURE");
 
-		Object[] structKeys = ((cfStructData) structure).keys();
+		Object[] structKeys = ((cfStructData) structure).keysArray();
 		for (int x = 0; x < structKeys.length; x++)
 			rtn.addElement(((cfStructData) structure).getData((String) structKeys[x]));
 

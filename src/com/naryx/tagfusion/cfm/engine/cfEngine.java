@@ -1076,7 +1076,7 @@ public class cfEngine extends Object implements cfEngineMBean {
 			Object[] paramNames;
 
 			cfFormData formData = (cfFormData) _Session.getQualifiedData( variableStore.FORM_SCOPE );
-			paramNames = formData.keys();
+			paramNames = formData.keysArray();
 			for ( int i = 0; i < paramNames.length; i++ ) {
 				String name = (String) paramNames[i];
 				// need uppercase version to account for formurlmaintaincase
@@ -1102,7 +1102,7 @@ public class cfEngine extends Object implements cfEngineMBean {
 			}
 
 			cfUrlData urlData = (cfUrlData) _Session.getQualifiedData( variableStore.URL_SCOPE );
-			paramNames = urlData.keys();
+			paramNames = urlData.keysArray();
 			for ( int i = 0; i < paramNames.length; i++ ) {
 				String name = (String) paramNames[i];
 				// need uppercase version to account for formurlmaintaincase

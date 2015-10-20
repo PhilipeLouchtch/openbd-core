@@ -181,12 +181,12 @@ public class cfCGIData extends cfStructData implements java.io.Serializable {
 	}
 
 	// return keys in uppercase to match CFMX
-	public synchronized Object[] keys() {
-		Object[] superKeys = super.keys();
-		Object[] keys = new Object[superKeys.length + cgiConstants.length];
+	public synchronized String[] keysArray() {
+		String[] superKeys = super.keysArray();
+		String[] keys = new String[superKeys.length + cgiConstants.length];
 
 		for (int i = 0; i < superKeys.length; i++)
-			keys[i] = superKeys[i].toString().toUpperCase();
+			keys[i] = superKeys[i].toUpperCase();
 
 		for (int j = 0; j < cgiConstants.length; j++)
 			keys[j + superKeys.length] = cgiConstants[j];

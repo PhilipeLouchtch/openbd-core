@@ -79,7 +79,7 @@ public class structFilter extends functionBase {
 			List<cfData>	args	= new ArrayList<cfData>(1);
 			cfData result;
 
-			Object[]	keys	= arrData.keys();
+			Object[]	keys	= arrData.keysArray();
 			for ( int x = 0; x < keys.length; x++ ){
 				args.clear();
 

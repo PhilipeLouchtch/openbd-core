@@ -88,7 +88,7 @@ public class cfcMethodData implements javaMethodDataInterface {
 	public cfcMethodData(cfSession session, String name, cfArgStructData arguments){
 		_name = name;
 		
-		Object[] keys 					= arguments.keys();
+		Object[] keys 					= arguments.keysArray();
 		_evaluatedArguments 		= new ArrayList<cfData>(keys.length);
 		_incomingArgumentValues = new ArrayList<cfData>(keys.length);
 		_namedArguments 				= arguments;

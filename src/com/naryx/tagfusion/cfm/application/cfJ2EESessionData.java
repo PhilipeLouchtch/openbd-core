@@ -130,14 +130,15 @@ public class cfJ2EESessionData extends cfSessionData {
 		}
 	}
 
-	public Object[] keys() {
+	public String[] keysArray() {
 		Enumeration<String> enumer = sessionScope.getAttributeNames();
 		List<Object> keys = new ArrayList<Object>();
 
 		while (enumer.hasMoreElements())
 			keys.add(enumer.nextElement());
 
-		return keys.toArray();
+		String[] keysArray = new String[keys.size()];
+		return keys.toArray(keysArray);
 	}
 
 	public int size() {

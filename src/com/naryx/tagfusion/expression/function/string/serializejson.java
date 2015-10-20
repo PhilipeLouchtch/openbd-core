@@ -230,7 +230,7 @@ public class serializejson extends functionBase {
 			out.append("{");
 
 			cfStructData cfstructdata = (cfStructData) var;
-			Object[] keys = cfstructdata.keys();
+			Object[] keys = cfstructdata.keysArray();
 			String key, value = null;
 			for (int x = 0; x < keys.length; x++) {
 				key = (String) keys[x];

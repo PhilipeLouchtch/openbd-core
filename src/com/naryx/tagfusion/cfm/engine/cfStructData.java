@@ -38,6 +38,7 @@ import com.naryx.tagfusion.cfm.parser.script.userDefinedFunction;
 import com.naryx.tagfusion.cfm.tag.cfDUMP;
 import com.naryx.tagfusion.cfm.tag.tagUtils;
 
+import javax.mail.Session;
 import java.util.*;
 
 /**
@@ -130,23 +131,23 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 	}
 
 	public synchronized void setData(String _key, cfData _data) {
-		hashdata.put(_key.intern(), _data);
+		hashdata.put(_key, _data);
 	}
 
 	public synchronized void setData(String _key, String _data) {
-		hashdata.put(_key.intern(), new cfStringData(_data) );
+		hashdata.put(_key, new cfStringData(_data) );
 	}
 
 	public synchronized void setData(String _key, int _data) {
-		hashdata.put(_key.intern(), new cfNumberData(_data) );
+		hashdata.put(_key, new cfNumberData(_data) );
 	}
 
 	public synchronized void setData(String _key, long _data) {
-		hashdata.put(_key.intern(), new cfNumberData(_data) );
+		hashdata.put(_key, new cfNumberData(_data) );
 	}
 
 	public synchronized void setData(String _key, Date _data) {
-		hashdata.put(_key.intern(), new cfDateData(_data) );
+		hashdata.put(_key, new cfDateData(_data) );
 	}
 
 	public synchronized void deleteData(String _key) throws cfmRunTimeException {
@@ -161,8 +162,15 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 		return hashdata.containsValue(_data);
 	}
 
-	public synchronized Object[] keys() {
-		return hashdata.keySet().toArray();
+	public synchronized Set<String> keys() {
+		return hashdata.keySet();
+	}
+
+	public synchronized String[] keysArray() {
+		Set<String> keySet = keys();
+		String[] keysArray = new String[keySet.size()];
+
+		return keySet.toArray(keysArray);
 	}
 
 	// Map interface method
@@ -242,10 +250,14 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 
 	public cfArrayData getKeyArray() throws cfmRunTimeException {
 		cfArrayData array = cfArrayData.createArray(1);
-		Object[] keys = keys();
 
-		for (int i = 0; i < keys.length; i++) {
-			array.addElement(new cfStringData((String) keys[i]));
+		Set<String> keySet = keys();
+		String[] keyArray = new String[keySet.size()];
+		keyArray = keys().toArray(keyArray);
+
+		for (String s : keyArray)
+		{
+			array.addElement(new cfStringData(s));
 		}
 
 		return array;
@@ -258,16 +270,17 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 
 	public synchronized Map<String, cfData> copy() {
 		Map<String, cfData> copy = cloneHashdata();
-		Object[] keys = keys();
 
-		for (int i = 0; i < keys.length; i++) {
-			String key = (String) keys[i];
-			Object val = getData(key);
+		Set<Entry<String, cfData>> entrySet = hashdata.entrySet();
 
-			// arrays get copied by value when copying structures
-			// see the CFMX docs on the StructCopy function
-			if (val instanceof cfArrayData)
-				copy.put(key, ((cfArrayData) val).duplicate());
+		for (Entry<String, cfData> entry : entrySet)
+		{
+			String key = entry.getKey();
+			cfData value = entry.getValue();
+
+			if (value instanceof cfArrayData) {
+				copy.put(key, value.duplicate());
+			}
 		}
 
 		return copy;
@@ -275,62 +288,73 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 
 	public synchronized cfData duplicate() {
 		Map<String, cfData> dupData = cloneHashdata();
-		Object[] keys = keys();
 
-		for (int i = 0; i < keys.length; i++) {
-			cfData nextDataCopy = null;
+		Set<Entry<String, cfData>> entrySet = hashdata.entrySet();
+		for (Entry<String, cfData> entry : entrySet)
+		{
+			String key = entry.getKey();
+			cfData value = entry.getValue();
+			cfData valueCopy = null;
 
-			String nextKey = (String) keys[i];
-			cfData nextData = getData(nextKey);
-
-			if (nextData != null) {
-				if (nextData.isImplicit()) // part of the fix for bug #2083
+			if (value != null) {
+				if (value.isImplicit()) // part of the fix for bug #2083
 					continue;
 
-				nextDataCopy = nextData.duplicate();
-				if (nextDataCopy == null) { // return null if struct contains
-																		// non-duplicatable type
+				valueCopy = value.duplicate();
+				if (valueCopy == null) { // return null if struct contains
+					// non-duplicatable type
 					return null;
 				}
 			}
-			dupData.put(nextKey, nextDataCopy);
+
+			dupData.put(key, valueCopy);
 		}
 
 		return new cfStructData(dupData);
 	}
 
 	public String getKeyList(String delimiter) {
-		String list = "";
-		Object[] keys = keys();
+		StringBuilder listBuilder = new StringBuilder(512);
 
-		for (int i = 0; i < keys.length; i++) {
-			list += (String) keys[i];
-			list += delimiter;
+		Set<String> keySet = keys();
+		for (String key : keySet)
+		{
+			listBuilder.append(key).append(delimiter);
 		}
 
-		if (size() > 0)
-			list = list.substring(0, list.length() - delimiter.length());
+		// Removing trailing delimiter
+		if (keySet.size() > 0) {
+			listBuilder.setLength(listBuilder.length() - delimiter.length());
+		}
 
-		return list;
+		return listBuilder.toString();
 	}
 
 	public synchronized String toString() {
-		if (isBDAdminStruct)
+		if (isBDAdminStruct) {
 			return "{STRUCT: [toString() disabled]}";
-
-		StringBuilder tmp = new StringBuilder(20);
-		Object[] keys = keys();
-
-		for (int i = 0; i < keys.length; i++) {
-			String key = (String) keys[i];
-			tmp.append(key + "=" + getData(key) + ",");
 		}
 
-		String tS = tmp.toString();
-		if (tS.length() > 0)
-			tS = tS.substring(0, tS.length() - 1);
+		StringBuilder stringBuilder = new StringBuilder(512);
+		Set<Entry<String, cfData>> entries = hashdata.entrySet();
 
-		return "{STRUCT:" + tS + "}";
+		stringBuilder.append("{STRUCT:");
+		for (Entry<String, cfData> entry : entries)
+		{
+			stringBuilder.append(entry.getKey());
+			stringBuilder.append('=');
+			stringBuilder.append(entry.getValue());
+			stringBuilder.append(',');
+		}
+
+		// Removing trailing delimiter
+		if (entries.size() > 0) {
+			stringBuilder.setLength(stringBuilder.length() - 1);
+		}
+
+		stringBuilder.append('}');
+
+		return stringBuilder.toString();
 	}
 
 	public void dump(java.io.PrintWriter out) {
@@ -356,71 +380,98 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 	protected synchronized void dump(String tablename, java.io.PrintWriter out, boolean longVersion, String _lbl, int _top) {
 		out.write("<table class='cfdump_table_struct'>");
 		out.write("<th class='cfdump_th_struct' colspan='2'>");
-		if (_lbl.length() > 0)
-			out.write(_lbl + " - ");
-
-		Object[] keys = keys();
+		if (_lbl.length() > 0) {
+			out.write(_lbl);
+			out.write(" - ");
+		}
 
 		if (isBDAdminStruct) {
-			out.write( tablename + " [dump disabled]</th>");
-		} else if (keys.length > 0) {
-			out.write( tablename + "</th>");
-			java.util.Arrays.sort(keys);
-			for (int i = 0; i < keys.length; i++) {
-				String key = (String) keys[i];
-				out.write("<tr><td class='cfdump_td_struct'>");
-				out.write(key);
-				out.write("</td><td class='cfdump_td_value'>");
-				if (_top > 1) {
-					cfData dd = getData(key);
-					if (dd != null) {
-						int newTop = (dd.getDataType() == cfData.CFSTRUCTDATA ? _top - 1 : _top);
-						if (longVersion)
-							dd.dumpLong(out, "", newTop);
-						else
-							dd.dump(out, "", newTop);
-					} else {
-						out.write("[null]");
+			out.write(tablename);
+			out.write(" [dump disabled]</th>");
+		}
+		else {
+			Set<Entry<String, cfData>> entries = hashdata.entrySet();
+
+			if (entries.size() > 0) {
+				out.write(tablename);
+				out.write("</th>");
+
+				ArrayList<Entry<String, cfData>> entriesList = new ArrayList<>(entries);
+				java.util.Collections.sort(
+						entriesList,
+						(o1, o2) -> o1.getKey().compareTo(o2.getKey())
+				);
+
+				for (Entry<String, cfData> entry : entriesList) {
+					out.write("<tr><td class='cfdump_td_struct'>");
+					out.write(entry.getKey());
+					out.write("</td><td class='cfdump_td_value'>");
+
+					if (_top > 1) {
+						cfData value = entry.getValue();
+						if (value != null) {
+							int newTop = (value.getDataType() == cfData.CFSTRUCTDATA ? _top - 1 : _top);
+
+							if (longVersion) {
+								value.dumpLong(out, "", newTop);
+							}
+							else {
+								value.dump(out, "", newTop);
+							}
+						}
+						else {
+							out.write("[null]");
+						}
 					}
+					out.write("</td></tr>");
 				}
-				out.write("</td></tr>");
+
 			}
-		} else {
-			out.write( tablename + " [empty]</th>");
+			else {
+				out.write(tablename);
+				out.write(" [empty]</th>");
+			}
 		}
 
 		out.write("</table>");
 	}
 
 	public void dumpWDDX(int version, java.io.PrintWriter out) {
-		if (version > 10)
+		if (version > 10) {
 			out.write("<s>");
-		else
+		}
+		else {
 			out.write("<struct>");
-
-		Object[] keys = keys();
-		String key;
-		for (int i = 0; i < keys.length; i++) {
-			key = (String) keys[i];
-			if (version > 10)
-				out.write("<v n='");
-			else
-				out.write("<var name='");
-
-			out.write(key);
-			out.write("'>");
-			getData(key).dumpWDDX(version, out);
-
-			if (version > 10)
-				out.write("</v>");
-			else
-				out.write("</var>");
 		}
 
-		if (version > 10)
+		Set<Entry<String, cfData>> entries = hashdata.entrySet();
+		for (Entry<String, cfData> entry : entries)
+		{
+			if (version > 10) {
+				out.write("<v n='");
+			}
+			else {
+				out.write("<var name='");
+			}
+
+			out.write(entry.getKey());
+			out.write("'>");
+			entry.getValue().dumpWDDX(version, out);
+
+			if (version > 10){
+				out.write("</v>");
+			}
+			else {
+				out.write("</var>");
+			}
+		}
+
+		if (version > 10) {
 			out.write("</s>");
-		else
+		}
+		else {
 			out.write("</struct>");
+		}
 	}
 
 	/*******************************************************************************
@@ -462,9 +513,8 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 
 	// Copies all of the mappings from the specified map to this map.
 	public void putAll(Map m) {
-		Iterator<? extends String> iter = m.keySet().iterator();
-		while (iter.hasNext()) {
-			String key = iter.next();
+		for (String key : (Set<String>) m.keySet()) // Todo: use generics
+		{
 			Object val = m.get(key);
 			put(key, val);
 		}
@@ -499,19 +549,20 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 	 * @throws cfmRunTimeException
 	 */
 	public void each( cfDataSession SessionData, cfData _data ) throws cfmRunTimeException {
-		if ( _data.getDataType() != cfData.CFUDFDATA )
+		if ( _data.getDataType() != cfData.CFUDFDATA ) {
 			throw new cfmRunTimeException( catchDataFactory.generalException("Invalid Attribute", "Must be a user defined function") );
+		}
 
 		userDefinedFunction	udf	= (userDefinedFunction)_data;
-		List<cfData>	args	= new ArrayList<cfData>(1);
+		List<cfData> args = new ArrayList<cfData>(1);
 
-		Object[]	keys	= keys();
-		for ( int x = 0; x < keys.length; x++ ){
+		Set<Entry<String, cfData>> entrySet = hashdata.entrySet();
+		for (Entry<String, cfData> entry : entrySet)
+		{
 			args.clear();
-			args.add( new cfStringData( String.valueOf(keys[x]) ) );
-			args.add( getData( (String)keys[x] ) );
-			udf.execute( SessionData.Session, args );
+			args.add(new cfStringData(entry.getKey()));
+			args.add(entry.getValue());
+			udf.execute(SessionData.Session, args);
 		}
 	}
-
 }

@@ -110,7 +110,7 @@ public class structFindValue extends functionBase {
 
 		} else if (_top.isStruct()) {
 			cfStructData struct = (cfStructData) _top;
-			Object[] keys = struct.keys();
+			Object[] keys = struct.keysArray();
 			String nextKey;
 			String pathStart = _path + ".";
 			for (int i = 0; i < keys.length; i++) {

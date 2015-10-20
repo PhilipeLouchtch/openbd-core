@@ -136,7 +136,7 @@ public class cfSERVLET extends cfTag implements Serializable
 		public Map getParameterMap(){
 			if ( parameterData != null ){
 				FastMap	HT	= new FastMap();
-				Object[] keys = parameterData.keys();
+				Object[] keys = parameterData.keysArray();
 				for ( int i = 0; i < keys.length; i++ ) {
 					String 	K = (String)keys[ i ];
 					try{
@@ -154,7 +154,7 @@ public class cfSERVLET extends cfTag implements Serializable
 			if ( parameterData != null )
 			{
 				Vector v = new Vector();
-				Object[] keys = parameterData.keys();
+				Object[] keys = parameterData.keysArray();
 				for ( int i = 0; i < keys.length; i++ )
 					v.addElement( keys[ i ] );
 				

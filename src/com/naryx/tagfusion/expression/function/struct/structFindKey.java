@@ -100,7 +100,7 @@ public class structFindKey extends functionBase {
 
 		} else if (_top.isStruct()) {
 			cfStructData struct = (cfStructData) _top;
-			Object[] keys = struct.keys();
+			Object[] keys = struct.keysArray();
 			String nextKey;
 			String nextKeyU;
 			String pathStart = _path + ".";
