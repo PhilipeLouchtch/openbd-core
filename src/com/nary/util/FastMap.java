@@ -71,8 +71,10 @@ public class FastMap<K extends String, V> extends ConcurrentHashMap<K, V> implem
 		super(initialCapacity);
 	}
 
-	public FastMap<K, V> clone() {
-		return new FastMap<K, V>(this);
+	public FastMap<K, V> clone() throws CloneNotSupportedException {
+		FastMap<K, V> clonedFastMap = (FastMap<K, V>) super.clone();
+
+		return clonedFastMap;
 	}
 
 	// this method is not part of the standard java.util.Map interface
@@ -86,13 +88,7 @@ public class FastMap<K extends String, V> extends ConcurrentHashMap<K, V> implem
 
 	@Override
 	public V put(K key, V value) {
-		if (isCaseSensitive()) {
-			return super.put(key, value);
-		}
-		else {
-			// When insensitive, squash casing to lower-case
-			return super.put((K) key.toLowerCase(), value);
-		}
+		return super.put((K) convertCasingIfNeeded(key).intern(), value);
 	}
 
 	@Override
