@@ -42,15 +42,14 @@ public class FastMap<K extends String, V> extends ConcurrentHashMap<K, V> implem
 	public static final boolean CASE_SENSITIVE = true;
 	public static final boolean CASE_INSENSITIVE = false;
 
-	private boolean isCaseSensitive;
+	// Java HashMaps are case-sensitive and so is our default
+	private boolean isCaseSensitive = true;
+
+	public FastMap() {
+	}
 
 	public FastMap(boolean isCaseSensitive) {
 		this.isCaseSensitive = isCaseSensitive;
-	}
-
-	public FastMap() {
-		// FastMaps are case-sensitive by default
-		this(CASE_SENSITIVE);
 	}
 
 	public FastMap(FastMap<K, V> map) {
@@ -59,8 +58,7 @@ public class FastMap<K extends String, V> extends ConcurrentHashMap<K, V> implem
 	}
 
 	public FastMap(java.util.Map<K, V> map) {
-		// java.util.Map is case sensitive
-		this(CASE_SENSITIVE);
+		this();
 		putAll(map);
 	}
 
