@@ -47,7 +47,7 @@ public abstract class CacheBase {
 
 	public abstract void flushEntry(String key);
 
-	// This HashMap maps a cacheKey to a lock object. This allows us to get a lock
+	// This FastMap maps a cacheKey to a lock object. This allows us to get a lock
 	// for an individual entry instead of the entire cache. This improves
 	// performance
 	// by allowing multiple entries to be processed at the same time.

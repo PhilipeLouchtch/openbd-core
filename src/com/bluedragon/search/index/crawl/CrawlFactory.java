@@ -46,7 +46,6 @@ import com.bluedragon.search.index.crawl.handler.AbstractFileHandler;
 import com.bluedragon.search.index.crawl.handler.CrawlException;
 import com.bluedragon.search.index.crawl.handler.FileHandlerHTMLImpl;
 import com.bluedragon.search.index.crawl.handler.FileHandlerJPGImpl;
-import com.bluedragon.search.index.crawl.handler.FileHandlerMP3Impl;
 import com.bluedragon.search.index.crawl.handler.FileHandlerMSOfficeImpl;
 import com.bluedragon.search.index.crawl.handler.FileHandlerOpenOfficeImpl;
 import com.bluedragon.search.index.crawl.handler.FileHandlerPDFImpl;
@@ -66,7 +65,6 @@ public class CrawlFactory extends Object {
 		addHandler( new FileHandlerTextImpl(bStoreBody) );
 		addHandler( new FileHandlerPDFImpl(bStoreBody) );
 		addHandler( new FileHandlerHTMLImpl(bStoreBody) );
-		addHandler( new FileHandlerMP3Impl(false) );
 		addHandler( new FileHandlerJPGImpl(false) );
 	}
 	

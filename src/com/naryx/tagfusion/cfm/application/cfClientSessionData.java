@@ -67,9 +67,6 @@ import com.naryx.tagfusion.cfm.sql.cfDataSource;
  * 
  * Note that the implementation of this has changed so this class is further
  * complicated by maintaining backwards compatibility for 6.1 client data
- * 
- * IMPORTANT! for backwards-compatibility of client data, we must use
- * com.nary.util.HashMap instead of FastMap.
  */
 
 public class cfClientSessionData extends cfStructData implements Serializable {

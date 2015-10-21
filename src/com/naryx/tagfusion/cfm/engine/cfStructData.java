@@ -32,7 +32,6 @@ package com.naryx.tagfusion.cfm.engine;
 
 import com.nary.util.CaseSensitiveMap;
 import com.nary.util.FastMap;
-import com.nary.util.HashMap;
 import com.nary.util.SequencedHashMap;
 import com.naryx.tagfusion.cfm.parser.script.userDefinedFunction;
 import com.naryx.tagfusion.cfm.tag.cfDUMP;
@@ -166,6 +165,7 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 		return hashdata.keySet();
 	}
 
+	// TODO: Improve code that makes use of this method by rewriting it to loop over EntrySets or KeySey + Using generics
 	public synchronized String[] keysArray() {
 		Set<String> keySet = keys();
 		String[] keysArray = new String[keySet.size()];
@@ -217,8 +217,6 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 	protected Map<String, cfData> cloneHashdata() {
 		if (hashdata instanceof FastMap) {
 			return new FastMap((FastMap) hashdata);
-		} else if (hashdata instanceof HashMap) {
-			return new HashMap(hashdata, ((HashMap) hashdata).isCaseSensitive());
 		} else if (hashdata instanceof SequencedHashMap) { // arguments, see bug
 																												// #3226
 			return new SequencedHashMap(hashdata, ((SequencedHashMap) hashdata).isCaseSensitive());

@@ -35,9 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A subclass of javolution.util.FastMap that supports case-insensitive keys.
  * Keys are always strings.
- * 
- * FastMap performs better than java.util.HashMap, and also gives us the ability
- * to provide a key comparator, which is how case-insensitivity is implemented.
  */
 public class FastMap<K extends String, V> extends ConcurrentHashMap<K, V> implements CaseSensitiveMap<K, V>, Serializable, Cloneable {
 	static final long serialVersionUID = 1;
