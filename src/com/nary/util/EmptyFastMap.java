@@ -63,8 +63,8 @@ public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>
 	}
 
 	@Override
-	public Set<java.util.Map.Entry<K, V>> entrySet() {
-		return new HashSet<>();
+	public Set<Map.Entry<K, V>> entrySet() {
+		return Collections.<Entry<K, V>>emptySet();
 	}
 
 	@Override
@@ -79,7 +79,7 @@ public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>
 
 	@Override
 	public Set<K> keySet() {
-		return new HashSet<>();
+		return Collections.<K>emptySet();
 	}
 
 	@Override
@@ -103,7 +103,7 @@ public class EmptyFastMap<K extends String, V> implements CaseSensitiveMap<K, V>
 
 	@Override
 	public Collection<V> values() {
-		return new ArrayList<>();
+		return Collections.<V>emptyList();
 	}
 
 	@Override
