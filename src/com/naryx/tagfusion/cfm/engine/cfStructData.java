@@ -37,7 +37,6 @@ import com.naryx.tagfusion.cfm.parser.script.userDefinedFunction;
 import com.naryx.tagfusion.cfm.tag.cfDUMP;
 import com.naryx.tagfusion.cfm.tag.tagUtils;
 
-import javax.mail.Session;
 import java.util.*;
 
 /**
@@ -82,10 +81,15 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 
 	public cfStructData(boolean caseSensitive) {
 		// what about subclasses?
-		this(new FastMap<String, cfData>(caseSensitive));
+		this(new FastMap<>(caseSensitive));
 	}
 
 	public cfStructData(Map<String, cfData> _hashdata) {
+		//DBG
+		/*if (_hashdata == null) {
+			throw new RuntimeException("Inheritor class is bypassing the internal structure");
+		}*/
+
 		setHashData(_hashdata);
 		setInstance(this);
 	}
@@ -225,6 +229,18 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 		}
 	}
 
+	/**
+	 * The most "direct" entrySet method, returns the set of entries of the underlying datastructure without any cf->java conversion
+	 * @return Set of Entries of the underlying datastructure
+	 */
+	public synchronized Set<Entry<String, cfData>> entrySetCfData() {
+		try {
+			return hashdata.entrySet();
+		} catch (NullPointerException npe) {
+			return null;
+		}
+	}
+
 	/**************************************************************************
 	 * The following methods do not reference the private hashdata attribute. They
 	 * do not need to be overridden by subclasses that use an alternate data store
@@ -269,7 +285,7 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 	public synchronized Map<String, cfData> copy() {
 		Map<String, cfData> copy = cloneHashdata();
 
-		Set<Entry<String, cfData>> entrySet = hashdata.entrySet();
+		Set<Entry<String, cfData>> entrySet = entrySetCfData();
 
 		for (Entry<String, cfData> entry : entrySet)
 		{
@@ -287,7 +303,7 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 	public synchronized cfData duplicate() {
 		Map<String, cfData> dupData = cloneHashdata();
 
-		Set<Entry<String, cfData>> entrySet = hashdata.entrySet();
+		Set<Entry<String, cfData>> entrySet = entrySetCfData();
 		for (Entry<String, cfData> entry : entrySet)
 		{
 			String key = entry.getKey();
@@ -334,7 +350,7 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 		}
 
 		StringBuilder stringBuilder = new StringBuilder(512);
-		Set<Entry<String, cfData>> entries = hashdata.entrySet();
+		Set<Entry<String, cfData>> entries = entrySetCfData();
 
 		stringBuilder.append("{STRUCT:");
 		for (Entry<String, cfData> entry : entries)
@@ -388,7 +404,7 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 			out.write(" [dump disabled]</th>");
 		}
 		else {
-			Set<Entry<String, cfData>> entries = hashdata.entrySet();
+			Set<Entry<String, cfData>> entries = entrySetCfData();
 
 			if (entries.size() > 0) {
 				out.write(tablename);
@@ -448,7 +464,7 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 			out.write("<struct>");
 		}
 
-		Set<Entry<String, cfData>> entries = hashdata.entrySet();
+		Set<Entry<String, cfData>> entries = entrySetCfData();
 		for (Entry<String, cfData> entry : entries)
 		{
 			if (version > 10) {
@@ -560,7 +576,7 @@ public class cfStructData extends cfStructDataBase implements Map, java.io.Seria
 		userDefinedFunction	udf	= (userDefinedFunction)_data;
 		List<cfData> args = new ArrayList<cfData>(1);
 
-		Set<Entry<String, cfData>> entrySet = hashdata.entrySet();
+		Set<Entry<String, cfData>> entrySet = entrySetCfData();
 		for (Entry<String, cfData> entry : entrySet)
 		{
 			args.clear();

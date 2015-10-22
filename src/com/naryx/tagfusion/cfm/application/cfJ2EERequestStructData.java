@@ -29,14 +29,7 @@
 
 package com.naryx.tagfusion.cfm.application;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import javax.servlet.ServletRequest;
 
@@ -181,8 +174,30 @@ public class cfJ2EERequestStructData extends cfStructData {
 	}
 
 	// Returns a set view of the mappings contained in this map.
-	public Set entrySet() {
-		throw new UnsupportedOperationException();
+	@Override
+	public Set<Entry<String, Object>> entrySet() {
+		Set<Entry<String, Object>> entries = new HashSet<>();
+
+		for (String key : keySet())
+		{
+			Object value = requestScope.getAttribute(key);
+			entries.add(new AbstractMap.SimpleEntry<>(key, value));
+		}
+
+		return entries;
+	}
+
+	@Override
+	public Set<Entry<String, cfData>> entrySetCfData() {
+		Set<Entry<String, cfData>> entries = new HashSet<>();
+
+		for (String key : keySet())
+		{
+			Object value = requestScope.getAttribute(key);
+			entries.add(new AbstractMap.SimpleEntry<>(key, tagUtils.convertToCfData(value)));
+		}
+
+		return entries;
 	}
 
 	// create a shallow copy
