@@ -38,6 +38,7 @@ import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.allaire.cfx.cfmlPage;
 import com.naryx.tagfusion.cfm.parser.CFContext;
@@ -508,6 +509,13 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 	}// getClasses()
 	***/
 
+	private static void assertMethodNotNull(Method method, String name) throws cfmRunTimeException
+	{
+		if ( method == null )
+		{
+			throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT, "errorCode.runtimeError", "cfdata.javaInvalidMethod", new String[]{name}	));
+		}
+	}
 
 	/**
 	 * invokes the given named method choosing the one
@@ -517,76 +525,85 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 	 * throws an exception if no matching method found
 	 */
 
-	public cfData invokeMethod( String _name, List<cfData> _args, cfSession _Session ) throws cfmRunTimeException {
-		Class<?> [] argTypes;
-		Object [] argValues;
-		
-		if ( _name.equals("each") ){ 
-			if ( instance instanceof cfArrayData 
-					|| instance instanceof cfStructData
-					|| instance instanceof cfQueryResultData )
-				_args.add(0, new cfDataSession(_Session) );
-		}
+	private static final ConcurrentHashMap<String, Method> methodLookupCache = new ConcurrentHashMap<>();
 
-		
-		argTypes 	= new Class[ _args.size() ];
-		argValues = new Object[ _args.size() ];
-		
-
-		Object returnValue = null;
-    Class<?> cls = getInstanceClass();
-
-		//get the Method trying a case-sensitive search first
-		Method method = getMethod(cls, _name, _args, argTypes, argValues, true, false );
-		if ( method == null ){
-			method = getMethod(cls, _name, _args, argTypes, argValues, false, true );
-		}
-
-		if ( method == null )	{			
-			throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT,
-				"errorCode.runtimeError",
-				"cfdata.javaInvalidMethod",
-				new String[]{_name}	));
-		}
-
-		// if instance hasn't been created and method is non-static, create the instance
-		if ( instance == null ){
-			if ( !Modifier.isStatic( method.getModifiers() ) ){
-				createInstance();
+	public cfData invokeMethod( String _name, List<cfData> _args, cfSession _Session ) throws cfmRunTimeException
+	{
+		if ( _name.equals("each") )
+		{
+			if (instance instanceof cfArrayData || instance instanceof cfStructData || instance instanceof cfQueryResultData)
+			{
+				_args.add(0, new cfDataSession(_Session));
 			}
 		}
 
-		try	{
-			returnValue = method.invoke( instance, argValues );
-		}	catch( IllegalArgumentException e )	{ // report that a matching method could not be found
-			// note that this is unlikely but there are situations where this occurs
-			throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT,
-				"errorCode.runtimeError",
-				"cfdata.javaInvalidMethod",
-				new String[]{_name}	));
+		Object returnValue = null;
+		Class<?> cls = getInstanceClass();
+		
+		Class<?>[] argTypes = new Class[_args.size()];
+		Object[] argValues = new Object[_args.size()];
 
-		}catch ( IllegalAccessException iae1 ){
-			// it may be that the method is a public method from a private implementation of a
-			// public interface...
+		String methodStringSignature = cls.getName() + '#' + _name + _args.size();
+		Method method = methodLookupCache.get(methodStringSignature);
+		if (method == null)
+		{
+			//get the Method trying a case-sensitive search first
+			method = getMethod(cls, _name, _args, true);
+			if ( method == null )
+			{
+				method = getMethod(cls, _name, _args, false);
+			}
+
+			// Todo: handle null methods
+			methodLookupCache.put(methodStringSignature, method);
+		}
+
+		assertMethodNotNull(method, _name);
+
+		// convert real args to _newArgs (throwing an exception if can't convert)
+		Class<?>[] methParamTypes = method.getParameterTypes();
+		System.arraycopy( methParamTypes, 0, argTypes, 0, methParamTypes.length );
+		convertData( _args, argTypes, argValues );
+
+		// if instance hasn't been created and method is non-static, create the instance
+		if ( instance == null && !Modifier.isStatic( method.getModifiers()))
+		{
+			createInstance();
+		}
+
+		try
+		{
+			returnValue = method.invoke( instance, argValues );
+		}
+		catch( IllegalArgumentException e )
+		{
+			// report that a matching method could not be found
+			// note that this is unlikely but there are situations where this occurs
+			throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT, "errorCode.runtimeError", "cfdata.javaInvalidMethod", new String[]{_name} ));
+		}
+		catch ( IllegalAccessException iae1 )
+		{
+			// it may be that the method is a public method from a private implementation of a public interface
 			boolean throwError = false;
 			Class currCls = cls;
-			while(currCls != null){
+			while (currCls != null)
+			{
 				try
 				{
-					Method innerMeth = getInnerClassMethod(currCls, method.getName(), argTypes );
-					if ( innerMeth != null )
+					Method innerMethod = determineInnerClassMethod(currCls, method.getName(), argTypes );
+					if ( innerMethod != null )
 					{
-						returnValue = innerMeth.invoke( instance, argValues );
+						returnValue = innerMethod.invoke( instance, argValues );
 						throwError = false;
+
+						methodLookupCache.put(methodStringSignature, innerMethod);
 						break;
 					}
-				}catch( IllegalAccessException e ){
-					throwError = true;
-
-				}catch (InvocationTargetException e2 ){
+				}
+				catch( IllegalAccessException | InvocationTargetException e ){
 					throwError = true;
 				}
-				
+
 				//part of the fix for OpenBD#180
 				Class<?> superClass = cls.getSuperclass();
 				if(currCls == superClass) //then we can't go any higher up (we're already at java.lang.Object)
@@ -595,43 +612,50 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 					break; //to avoid an infinite loop (seen on OpenBD-GAE)
 				}
 				else
+				{
 					currCls = superClass;
+				}
 			}
 
-			if ( throwError ){ // handle original error
+			if ( throwError )
+			{
+				// No success, handle original error
 				throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT,
 					"errorCode.runtimeError",
 					"cfdata.javaIllegalMethod",
 					new String[]{_name}	));
 			}
-			
-		}catch ( InvocationTargetException ite ){
+		}
+		catch (InvocationTargetException ite)
+		{
 			Throwable targetExc = ite.getTargetException();
-			if ( targetExc instanceof cfmAbortException )
-				throw (cfmAbortException)targetExc;
-
-			if ( targetExc != null ){
-				throw new cfmRunTimeException( catchDataFactory.javaMethodException( "errorCode.javaException",
-					targetExc.getClass().getName(),
-					targetExc.getMessage(),
-					targetExc ));
-			}	else{
+			if (targetExc instanceof cfmAbortException)
+			{
+				throw (cfmAbortException) targetExc;
+			}
+			else if ( targetExc != null )
+			{
+				throw new cfmRunTimeException(catchDataFactory.javaMethodException("errorCode.javaException",
+						targetExc.getClass().getName(),
+						targetExc.getMessage(),
+						targetExc));
+			}
+			else
+			{
 				String msg = "The method \"" + _name + "\" threw an exception and BlueDragon was unable to retrieve the exception information.";
 				if ( ite.getMessage() != null )
+				{
 					msg += " (InvocationTargetException message = " + ite.getMessage() + ")";
-				throw new cfmRunTimeException( catchDataFactory.javaMethodException( "errorCode.javaException",
-					ite.getClass().getName(),
-					msg,
-					ite ));
+				}
+				cfCatchData catchData = catchDataFactory.javaMethodException( "errorCode.javaException", ite.getClass().getName(), msg, ite);
+				throw new cfmRunTimeException(catchData);
 			}
 		}
 
 		return tagUtils.convertToCfData( returnValue );
+	}
 
-	}// invokeMethod
-
-
-	private Method getInnerClassMethod(Class<?> cls, String _method, Class<?>[] _paramTypes ) {
+	private Method determineInnerClassMethod(Class<?> cls, String _method, Class<?>[] _paramTypes ) {
 		// We're looking for the instance of Method that has the same attributes as the one we first
 		// found but now we want the version that belongs to the super class or implemented interface
 		Method parentMethod = null;
@@ -661,93 +685,88 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 
 	/**
 	 * returns a Method that has the name '_name' and best matches the Vector of cfData arguments.
-	 * The 2 Class[]'s will reflect the chosen method. '_newArgTypes' will contain the Classes of
-	 * the chosen method argmuents, and '_newArgValues' will contain the argument to pass to the
-	 * Method (converted from the cfData's in '_actualArgs' to Java Objects).
 	 */
+	private static Method getMethod(Class<?> _class, String _name, List<cfData> _actualArgs, boolean _caseSensitive ) throws cfmRunTimeException{
 
-	private static Method getMethod( Class<?> _class, String _name, List<cfData> _actualArgs,
-														Class<?>[] _newArgTypes, Object[] _newArgValues,
-														boolean _caseSensitive, boolean _throwOnError ) throws cfmRunTimeException{
+		// If we're doing a non-caseSensitive lookup then we have looked at all possible methods for the given name
+		// and thus we can throw an exception
+		boolean throwOnError = !_caseSensitive;
 
 		// get Vector of potential matches i.e. same name + same number of args [non-case-sensitive match]
-		List<Method> possibles = getMatchingMethods( _class, _name, _actualArgs.size(), _caseSensitive, true  );
-		boolean ambiguous = false;
+		List<Method> possibles = getMatchingMethods(_class, _name, _actualArgs.size(), _caseSensitive, true);
 
-		// if Vector.size() > 1
-		if ( possibles.size() > 1 ){
-			//    do best fit
-		    ambiguous = true;
+		boolean ambiguous = possibles.size() > 1;
+		if (ambiguous)
+		{
+			// do best fit
 			possibles = bestFitMethod( possibles, _actualArgs );
 		}
 
-		// if Vector.size() != 1 (i.e. could be 0 or more than 1)
-		if ( possibles.size() != 1 ){
-			if ( _throwOnError ){
-            // if there's no matching methods and it wasn't best matched
-				if ( possibles.size() == 0 && !ambiguous ){
-					throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT,
-																																						"errorCode.runtimeError",
-																																					 	 "cfdata.javaGetMethod",
-																																					 	 new String[]{_name}	));
-				}else{
-					throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT,
-																																						"errorCode.runtimeError",
-																																					 	 "cfdata.javaGetMethod2",
-																																					 	 new String[]{_name}	));
-				}
-			}else{
-				return null;
+        // if there's no matching methods and it wasn't best matched
+		if (throwOnError)
+		{
+			if (!ambiguous && possibles.size() == 0)
+			{
+				cfCatchData catchData = catchDataFactory.generalException(cfCatchData.TYPE_OBJECT, "errorCode.runtimeError", "cfdata.javaGetMethod", new String[]{_name});
+				throw new cfmRunTimeException(catchData);
 			}
+			else if (possibles.size() > 1)
+			{
+				cfCatchData catchData = catchDataFactory.generalException(cfCatchData.TYPE_OBJECT, "errorCode.runtimeError", "cfdata.javaGetMethod2", new String[]{_name});
+				throw new cfmRunTimeException(catchData);
+			}
+		}
+		else if (possibles.size() != 1)
+		{
+			return null;
 		}
 
 		// INVARIANT - possibles.size() == 1;
-		Method theMethod = possibles.get(0);
-		Class<?>[] methParamTypes = theMethod.getParameterTypes();
-		System.arraycopy( methParamTypes, 0, _newArgTypes, 0, methParamTypes.length );
+		return possibles.get(0);
+	}
 
-		// convert real args to _newArgs (throwing an exception if can't convert)
-		try{
-			convertData( _actualArgs, _newArgTypes, _newArgValues );
-		}catch( cfmRunTimeException e ){
-			if ( _throwOnError )
-				throw e;
-			else
-				return null;
+	private static boolean isMethodModifierAllowed(Method method, boolean includeStatic) {
+		return includeStatic || !Modifier.isStatic(method.getModifiers());
+	}
+
+	private static boolean isMethodMatchingMethodName(Method method, String methodNameToMatch, boolean caseSensitive) {
+		if (caseSensitive) {
+			return method.getName().equals(methodNameToMatch);
 		}
-		return theMethod;
+		else {
+			return method.getName().equalsIgnoreCase(methodNameToMatch);
+		}
+	}
 
-	}// getMethod()
-
+	private static boolean isMethodMatchingArgumentCount(Method method, int numberOfArguments) {
+		return method.getParameterCount() == numberOfArguments;
+	}
 
 	/**
 	 * returns all the Method's for this Java class that have the name '_methodName'
 	 * with '_noArgs' number of parameters
 	 */
-  private static List<Method> getMatchingMethods( Class<?> _class, String _methodName, int _noArgs, boolean _case, boolean _includeStatic ){
+	private static List<Method> getMatchingMethods( Class<?> _class, String _methodName, int _noArgs, boolean _case, boolean _includeStatic )
+	{
 		List<Method> matching = new ArrayList<Method>();
-		Method nextMethod;
-		String nextMethodName;
-		if ( _class == null )
-      return matching;
 
-		Method [] allMethods = _class.getMethods();
+		if ( _class == null ) {
+		    return matching;
+		}
 
-		for ( int i = 0; i < allMethods.length; i++ ){
-			nextMethod = allMethods[i];
-			nextMethodName = nextMethod.getName();
-
-      if ( ( _includeStatic || (!_includeStatic && !Modifier.isStatic( nextMethod.getModifiers() ) ) )
-          && ( ( _case && nextMethodName.equals(_methodName ) )
-          || ( !_case && nextMethodName.equalsIgnoreCase(_methodName ) ) )
-          && nextMethod.getParameterTypes().length == _noArgs ){
-      	addMatchingMethod( matching, nextMethod );
+		for (Method nextMethod : _class.getMethods())
+		{
+			if (isMethodModifierAllowed(nextMethod, _includeStatic) &&
+				isMethodMatchingMethodName(nextMethod, _methodName, _case) &&
+				isMethodMatchingArgumentCount(nextMethod, _noArgs))
+			{
+				addMatchingMethod(matching, nextMethod);
 			}
 		}
 
 		return matching;
 
-	}// getMatchingMethods()
+	}
 
 	private static void addMatchingMethod( List<Method> matching, Method m )
 	{
