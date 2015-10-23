@@ -527,14 +527,23 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 
 	private static final ConcurrentHashMap<String, Method> methodLookupCache = new ConcurrentHashMap<>();
 
+	private static String createMethodSignatureString(Class<?> clazz, String methodName, int argumentCount)
+	{
+		StringBuilder stringBuilder = new StringBuilder(64);
+
+		stringBuilder.append(clazz.getName());
+		stringBuilder.append('#');
+		stringBuilder.append(methodName);
+		stringBuilder.append(argumentCount);
+
+		return stringBuilder.toString();
+	}
+
 	public cfData invokeMethod( String _name, List<cfData> _args, cfSession _Session ) throws cfmRunTimeException
 	{
-		if ( _name.equals("each") )
+		if ( _name.equals("each") && (instance instanceof cfArrayData || instance instanceof cfStructData || instance instanceof cfQueryResultData))
 		{
-			if (instance instanceof cfArrayData || instance instanceof cfStructData || instance instanceof cfQueryResultData)
-			{
-				_args.add(0, new cfDataSession(_Session));
-			}
+			_args.add(0, new cfDataSession(_Session));
 		}
 
 		Object returnValue = null;
@@ -543,7 +552,7 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 		Class<?>[] argTypes = new Class[_args.size()];
 		Object[] argValues = new Object[_args.size()];
 
-		String methodStringSignature = cls.getName() + '#' + _name + _args.size();
+		String methodStringSignature = createMethodSignatureString(cls, _name, _args.size());
 		Method method = methodLookupCache.get(methodStringSignature);
 		if (method == null)
 		{
@@ -554,11 +563,10 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 				method = getMethod(cls, _name, _args, false);
 			}
 
-			// Todo: handle null methods
+			assertMethodNotNull(method, _name);
+
 			methodLookupCache.put(methodStringSignature, method);
 		}
-
-		assertMethodNotNull(method, _name);
 
 		// convert real args to _newArgs (throwing an exception if can't convert)
 		Class<?>[] methParamTypes = method.getParameterTypes();
@@ -596,11 +604,13 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 						returnValue = innerMethod.invoke( instance, argValues );
 						throwError = false;
 
+						// Change the cached method for the signature to the newly determined one
 						methodLookupCache.put(methodStringSignature, innerMethod);
 						break;
 					}
 				}
-				catch( IllegalAccessException | InvocationTargetException e ){
+				catch( IllegalAccessException | InvocationTargetException e )
+				{
 					throwError = true;
 				}
 
@@ -620,10 +630,8 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 			if ( throwError )
 			{
 				// No success, handle original error
-				throw new cfmRunTimeException( catchDataFactory.generalException( cfCatchData.TYPE_OBJECT,
-					"errorCode.runtimeError",
-					"cfdata.javaIllegalMethod",
-					new String[]{_name}	));
+				cfCatchData catchData = catchDataFactory.generalException( cfCatchData.TYPE_OBJECT, "errorCode.runtimeError", "cfdata.javaIllegalMethod", new String[]{_name} );
+				throw new cfmRunTimeException(catchData);
 			}
 		}
 		catch (InvocationTargetException ite)
@@ -635,10 +643,8 @@ public class cfJavaObjectData extends cfData implements java.io.Serializable {
 			}
 			else if ( targetExc != null )
 			{
-				throw new cfmRunTimeException(catchDataFactory.javaMethodException("errorCode.javaException",
-						targetExc.getClass().getName(),
-						targetExc.getMessage(),
-						targetExc));
+				cfCatchData catchData = catchDataFactory.javaMethodException("errorCode.javaException", targetExc.getClass().getName(), targetExc.getMessage(), targetExc);
+				throw new cfmRunTimeException(catchData);
 			}
 			else
 			{
