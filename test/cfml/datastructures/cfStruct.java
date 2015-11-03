@@ -7,6 +7,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -58,7 +60,30 @@ public class cfStruct
 			Object valueOriginal = testEntry.getValue();
 			assertTrue(System.identityHashCode(valueOriginal) == System.identityHashCode(valueInClone));
 
-			assertTrue(System.identityHashCode(struct.get(testEntry.getKey())) == System.identityHashCode(structClone.get(testEntry.getKey())));
+			assertTrue(System.identityHashCode(struct.getData(testEntry.getKey())) == System.identityHashCode(structClone.getData(testEntry.getKey())));
+		}
+	}
+
+	@Test
+	public void duplicateIsDeepishCopy() throws Exception
+	{
+		for (Map.Entry<String, cfData> testEntry : testEntries)
+		{
+			struct.put(testEntry.getKey(), testEntry.getValue());
+		}
+
+		cfStructData structDuplicate = (cfStructData) struct.duplicate();
+
+		for (Map.Entry<String, cfData> testEntry : testEntries)
+		{
+			assertTrue(structDuplicate.containsKey(testEntry.getValue()));
+
+			Object valueOriginal = testEntry.getValue();
+			Object valueInClone = structDuplicate.getData(testEntry.getKey());
+			assertTrue(System.identityHashCode(valueOriginal) != System.identityHashCode(valueInClone));
+
+			assertTrue(System.identityHashCode(struct.getData(testEntry.getKey())) != System.identityHashCode(structDuplicate.getData(testEntry.getKey()))
+			);
 		}
 	}
 }
